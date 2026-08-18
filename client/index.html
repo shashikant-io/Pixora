@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Photo Finder — Find Yourself in Every Photo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Work+Sans:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="site-header">
+      <div class="container">
+        <a href="index.html" class="brand">
+          <svg class="brand-rings" viewBox="0 0 40 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="14" cy="12" r="9" stroke="#c85c73" stroke-width="2.5" />
+            <circle cx="26" cy="12" r="9" stroke="#b98d45" stroke-width="2.5" />
+          </svg>
+          <span class="brand-name">Photo Finder</span>
+        </a>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="container stack">
+        <div class="center-text" style="max-width: 680px; margin: 0 auto;">
+          <h1>Find yourself in <span class="gradient-text">every photo</span>.</h1>
+          <p style="font-size: 1.05rem; line-height: 1.6; color: rgba(255, 255, 255, 0.85); margin-top: 0.5rem;">
+            Upload a selfie, and our AI will find every photo from the event
+            where your face appears — no more scrolling through thousands of pictures.
+          </p>
+        </div>
+
+        <div class="row" style="margin-top: var(--space-lg); justify-content: center; gap: 1.8rem;">
+          <!-- Photographer Card -->
+          <a href="admin.html" class="card-link" style="max-width: 360px;">
+            <div class="card" style="text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: space-between; padding: 2.2rem 1.8rem;">
+              <div>
+                <div class="popup-top-icon" style="margin-bottom: 1.2rem;">
+                  <span style="font-size: 26px;">📸</span>
+                </div>
+                <h2 style="font-size: 1.45rem; margin-bottom: 0.5rem;">I'm the <span class="gradient-text">Photographer</span></h2>
+                <p style="font-size: 0.9rem; line-height: 1.5; color: rgba(255, 255, 255, 0.7); margin-bottom: 1.5rem;">
+                  Create an event, upload all photos, and generate a guest QR code for instant face matching.
+                </p>
+              </div>
+              <span class="btn-find-photos" style="width: 100%; text-decoration: none;">
+                Open Dashboard &rarr;
+              </span>
+            </div>
+          </a>
+
+          <!-- Guest Card -->
+          <a href="guest.html" class="card-link" style="max-width: 360px;">
+            <div class="card" style="text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: space-between; padding: 2.2rem 1.8rem;">
+              <div>
+                <div class="popup-top-icon" style="margin-bottom: 1.2rem; background: linear-gradient(135deg, #b98d45, #e5b869); box-shadow: 0 6px 22px rgba(229, 184, 105, 0.4);">
+                  <span style="font-size: 26px;">🤳</span>
+                </div>
+                <h2 style="font-size: 1.45rem; margin-bottom: 0.5rem;">I'm a <span class="gradient-text" style="background: linear-gradient(135deg, #e5b869, #f3d492); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Guest</span></h2>
+                <p style="font-size: 0.9rem; line-height: 1.5; color: rgba(255, 255, 255, 0.7); margin-bottom: 1.5rem;">
+                  Upload your selfie and instantly discover all photos of you with Buffalo AI face recognition.
+                </p>
+              </div>
+              <span class="btn-find-photos" style="width: 100%; text-decoration: none; background: linear-gradient(90deg, #b98d45 0%, #e5b869 50%, #c4943f 100%); box-shadow: 0 6px 24px rgba(229, 184, 105, 0.45);">
+                Find My Photos ✨
+              </span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        Photo Finder
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

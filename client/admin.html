@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Photographer Dashboard — Photo Finder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Work+Sans:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+</head>
+
+<body>
+  <div class="page">
+    <header class="site-header">
+      <div class="container">
+        <a href="index.html" class="brand">
+          <svg class="brand-rings" viewBox="0 0 40 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true">
+            <circle cx="14" cy="12" r="9" stroke="#c85c73" stroke-width="2.5" />
+            <circle cx="26" cy="12" r="9" stroke="#b98d45" stroke-width="2.5" />
+          </svg>
+          <span class="brand-name">Photo Finder</span>
+        </a>
+        <span id="server-status" class="message message-info">Checking server&hellip;</span>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="container stack">
+        <h1>Photographer Dashboard</h1>
+
+        <section class="card">
+          <h2>Create an Event</h2>
+          <form id="create-event-form" class="stack">
+            <div class="field">
+              <label for="event-name">Event Name</label>
+              <input type="text" id="event-name" name="name" placeholder="Annual Gala / Wedding / Party" required />
+            </div>
+            <div class="field">
+              <label for="event-date">Event Date</label>
+              <input type="date" id="event-date" name="date" required />
+            </div>
+            <div class="field">
+              <label for="event-location">Location</label>
+              <input type="text" id="event-location" name="location" placeholder="City or Venue" required />
+            </div>
+            <button type="submit" class="btn btn-primary" id="create-event-btn">Create Event</button>
+            <div id="create-event-message"></div>
+          </form>
+        </section>
+
+        <section class="card">
+          <h2>Upload Event Photos</h2>
+
+          <div id="face-models-status" class="message message-info">Checking Buffalo ONNX Face AI&hellip;</div>
+
+          <div class="field" style="margin-top: var(--space-sm);">
+            <label for="upload-event-select">Which event are these photos for?</label>
+            <select id="upload-event-select">
+              <option value="">Loading events&hellip;</option>
+            </select>
+          </div>
+
+          <div id="admin-upload-dropzone" class="upload-drop stack">
+            <input type="file" id="photo-input" accept="image/*" multiple disabled />
+            <span class="upload-icon">📸</span>
+            <p style="margin-bottom: 0.25rem; font-weight: 500;">
+              <strong>Click to browse</strong> or drag &amp; drop event photos here
+            </p>
+            <p style="font-size: 0.85rem; margin-bottom: 0;">You can select multiple photos at once</p>
+            <div id="selected-files-count" class="hidden"
+              style="font-weight: 600; color: var(--color-rose); margin-top: 0.5rem;"></div>
+          </div>
+
+          <div class="row" style="margin-top: var(--space-sm); gap: 0.75rem; align-items: center;">
+            <button type="button" id="admin-browse-btn" class="btn btn-secondary" disabled>
+              📁 Browse Photos
+            </button>
+            <button id="upload-btn" class="btn btn-primary" disabled style="flex: 1;">
+              Upload Photos
+            </button>
+          </div>
+
+          <div id="upload-summary" class="hidden" style="margin-top: var(--space-sm);">
+            <div class="progress-bar">
+              <div id="upload-progress-fill" class="progress-bar-fill"></div>
+            </div>
+            <p id="upload-summary-text" style="margin-top: 0.5rem;"></p>
+          </div>
+
+          <div id="upload-log" class="stack" style="margin-top: var(--space-sm);"></div>
+        </section>
+
+        <section class="card">
+          <h2>Your Events</h2>
+          <div id="events-list" class="stack">
+            <p>Loading events&hellip;</p>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">Photo Finder &mdash; Photographer Dashboard</div>
+    </footer>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
