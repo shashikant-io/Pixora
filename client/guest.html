@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Find Your Photos — Photo Finder</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Work+Sans:wght@400;500;600&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap"
     rel="stylesheet"
   />
   <link rel="stylesheet" href="style.css" />
@@ -17,190 +18,227 @@
       <div class="container">
         <a href="index.html" class="brand">
           <svg class="brand-rings" viewBox="0 0 40 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <circle cx="14" cy="12" r="9" stroke="#c85c73" stroke-width="2.5" />
-            <circle cx="26" cy="12" r="9" stroke="#b98d45" stroke-width="2.5" />
+            <circle cx="14" cy="12" r="9" stroke="#f43f5e" stroke-width="2.5" />
+            <circle cx="26" cy="12" r="9" stroke="#f59e0b" stroke-width="2.5" />
           </svg>
           <span class="brand-name">Photo Finder</span>
         </a>
-        <a href="#" id="header-help-btn" class="header-help-link">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button type="button" id="header-help-btn" class="btn btn-ghost btn-sm" style="color: var(--text-secondary);">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
             <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
             <line x1="12" y1="17" x2="12.01" y2="17"></line>
           </svg>
-          Help
-        </a>
+          <span>Help</span>
+        </button>
       </div>
     </header>
 
-    <main class="main" style="display: flex; align-items: center; justify-content: center;">
-      <div class="container">
-        <!-- Luxury Dark Popup Card -->
-        <div class="popup-card">
-          <!-- Top Pink Gradient Camera Icon -->
-          <div class="popup-top-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path>
-              <circle cx="12" cy="13" r="3"></circle>
-            </svg>
+    <main class="main">
+      <div class="container" style="max-width: 1200px; width: 100%;">
+        <!-- Search Card Wrapper (Centered max-width: 580px) -->
+        <div style="max-width: 580px; margin: 0 auto;">
+          <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <button type="button" id="guest-back-btn" class="btn btn-secondary btn-sm" aria-label="Go back" style="padding: 0.35rem 0.8rem; font-size: 0.82rem; gap: 0.4rem;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              <span>Back</span>
+            </button>
           </div>
 
-          <h1>Find Your <span class="gradient-text">Photos</span></h1>
-          <p class="popup-subtitle">Enter your event code and upload a selfie to find your photos</p>
-
-          <!-- Event Code Section -->
-          <div style="text-align: left; margin-bottom: 0.5rem;">
-            <div class="event-code-label-row">
-              <span class="gold-label">Event Code</span>
-              <button type="button" id="how-it-works-btn" class="pill-help-btn">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="12" y1="16" x2="12" y2="12"></line>
-                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                </svg>
-                How it works
-              </button>
+          <!-- Guest Find Photos Card -->
+          <div class="card" style="padding: 2.25rem 2rem;">
+            <div style="width: 54px; height: 54px; border-radius: 50%; background: var(--accent-rose-soft); border: 1px solid rgba(244, 63, 94, 0.25); display: flex; align-items: center; justify-content: center; color: var(--accent-rose); margin: 0 auto 1.15rem auto;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                <circle cx="12" cy="13" r="3"/>
+              </svg>
             </div>
 
-            <div class="event-input-wrapper">
-              <span class="event-input-icon">🎟️</span>
-              <select id="event-select" class="event-select-input">
+            <h1 class="center-text" style="font-size: 1.75rem; margin-bottom: 0.35rem;">
+              Find Your <span style="color: var(--accent-rose);">Photos</span>
+            </h1>
+            <p class="center-text" style="font-size: 0.9rem; margin-bottom: 1.5rem;">
+              Select your wedding event and upload a selfie to instantly find all matching pictures.
+            </p>
+
+            <!-- Event Code Section -->
+            <div class="field">
+              <label for="event-select">
+                <span>Wedding Event</span>
+                <button type="button" id="how-it-works-btn" class="btn btn-ghost btn-sm" style="height: 20px; padding: 0; font-size: 0.75rem; color: var(--accent-gold);">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                  How it works
+                </button>
+              </label>
+
+              <select id="event-select">
                 <option value="">Loading events&hellip;</option>
               </select>
-              <span class="event-check-icon">✓</span>
+
+              <div id="manual-event-group" class="hidden" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                <input type="text" id="manual-event-id" placeholder="e.g. EVT-8TQFYA" style="text-transform: uppercase;" />
+                <button type="button" id="apply-manual-event-btn" class="btn btn-secondary btn-sm" style="white-space: nowrap;">
+                  Apply
+                </button>
+              </div>
+
+              <div id="active-event-badge-container" style="text-align: center; margin-top: 0.5rem;">
+                <span class="event-id-badge" style="font-size: 0.8rem; padding: 0.25rem 0.75rem;">
+                  Event Code: <span id="active-event-id">EVT-8TQFYA</span>
+                </span>
+              </div>
             </div>
 
-            <div id="manual-event-group" class="hidden" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-              <input type="text" id="manual-event-id" placeholder="e.g. EVT-8TQFYA" style="text-transform: uppercase; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.18); color: #fff; border-radius: 10px; padding: 0.6rem 0.85rem; width: 100%;" />
-              <button type="button" id="apply-manual-event-btn" class="dark-pill-btn" style="white-space: nowrap;">
-                Apply
+            <!-- Selfie Upload Dropzone -->
+            <div id="upload-dropzone" class="upload-drop" style="margin-top: 1rem; margin-bottom: 1.15rem; padding: 1.5rem;">
+              <input type="file" id="selfie-input" accept="image/*" />
+              
+              <!-- Default placeholder view -->
+              <div id="dropzone-default-content">
+                <div class="upload-icon-box">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </div>
+                <div class="upload-primary-text">Click or drop your selfie here</div>
+                <p class="upload-secondary-text">Make sure your face is clearly visible in the photo</p>
+              </div>
+
+              <!-- Uploaded selfie preview view -->
+              <div id="dropzone-preview-content" class="hidden">
+                <div style="display: flex; align-items: center; gap: 1rem; text-align: left;">
+                  <div style="position: relative; width: 72px; height: 72px; border-radius: 12px; overflow: hidden; border: 2px solid var(--accent-rose); flex-shrink: 0;">
+                    <img id="selfie-preview" style="width: 100%; height: 100%; object-fit: cover;" alt="Your selfie" />
+                    <button type="button" id="remove-selfie-btn" class="btn btn-danger" style="position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; padding: 0; border-radius: 50%;" title="Remove selfie">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                    </button>
+                  </div>
+                  <div>
+                    <div style="font-weight: 600; font-size: 0.95rem; color: #ffffff;">Your Selfie Loaded</div>
+                    <p style="font-size: 0.8rem; margin: 0.15rem 0; color: var(--text-muted);">Ready for Buffalo Face AI matching</p>
+                    <span class="message message-success" style="padding: 0.15rem 0.5rem; font-size: 0.75rem; gap: 0.25rem;">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      Photo Ready
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Upload Action Buttons -->
+            <div style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem;">
+              <button type="button" id="browse-btn" class="btn btn-secondary" style="flex: 1;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <span>Upload Photo</span>
+              </button>
+              <button type="button" id="open-camera-btn" class="btn btn-secondary" style="flex: 1;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>
+                </svg>
+                <span>Take Selfie</span>
               </button>
             </div>
 
-            <div id="active-event-badge-container" style="text-align: center; margin-top: 0.5rem;">
-              <div class="event-code-pill">
-                Event Code: <span id="active-event-id" class="gold-code">EVT-8TQFYA</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Selfie Upload Box with Dashed Gold Border -->
-          <div id="upload-dropzone" class="selfie-drop-container">
-            <input type="file" id="selfie-input" accept="image/*" />
-            
-            <!-- Default placeholder view -->
-            <div id="dropzone-default-content" style="text-align: center; padding: 0.8rem 0;">
-              <span class="upload-icon" style="font-size: 1.8rem; margin-bottom: 0.2rem;">📸</span>
-              <p style="margin: 0; font-size: 0.9rem; font-weight: 500; color: #ffffff;">
-                Click or drag &amp; drop your selfie here
-              </p>
-              <p class="selfie-hint" style="margin-top: 0.2rem;">Make sure your face is clearly visible for better results.</p>
-            </div>
-
-            <!-- Uploaded selfie preview view -->
-            <div id="dropzone-preview-content" class="hidden">
-              <div class="selfie-preview-layout">
-                <div class="selfie-thumb-wrapper">
-                  <img id="selfie-preview" class="selfie-thumb-img" alt="Your selfie" />
-                  <button type="button" id="remove-selfie-btn" class="selfie-delete-btn" title="Remove selfie">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                  </button>
-                </div>
-                <div class="selfie-info">
-                  <span class="selfie-title">Your Selfie</span>
-                  <p class="selfie-hint">Make sure your face is clearly visible for better results.</p>
-                  <span class="selfie-success-tag">✓ Photo uploaded successfully</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Upload Action Buttons -->
-          <div class="popup-actions-row">
-            <button type="button" id="browse-btn" class="dark-pill-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
+            <!-- Primary Find Photos Action Button -->
+            <button id="search-btn" class="btn btn-primary btn-lg" style="width: 100%;" disabled>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
               </svg>
-              Upload Photo
+              <span>Find My Photos</span>
             </button>
-            <button type="button" id="open-camera-btn" class="dark-pill-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                <circle cx="12" cy="13" r="4"></circle>
-              </svg>
-              Take Selfie
-            </button>
-          </div>
 
-          <!-- Vibrant Rose Primary Action Button -->
-          <button id="search-btn" class="btn-find-photos" disabled>
-            ✨ Find My Photos
-          </button>
-
-          <!-- Status Message Banner -->
-          <div id="guest-status-banner" class="status-info-banner">
-            Choose your event and upload a selfie to start.
+            <!-- Status Message Banner -->
+            <div id="guest-status-banner" class="message message-info" style="width: 100%; justify-content: center; margin-top: 1rem;">
+              Select your event and upload a selfie to start.
+            </div>
           </div>
         </div>
 
-        <!-- Matching Photos Gallery Section -->
-        <div id="results-heading" class="hidden" style="margin-top: var(--space-xl);">
-          <h2 class="center-text" style="color: #ffffff; text-shadow: 0 2px 10px rgba(0,0,0,0.7);">Your Photos</h2>
-        </div>
-        <div id="results-gallery" class="gallery" style="margin-top: var(--space-sm);"></div>
+        <!-- Matching Photos Gallery Section (Full 1200px responsive width) -->
+        <section id="results-section" class="matched-results-section hidden" aria-label="Matched Photos Gallery">
+          <div class="matched-results-header">
+            <div class="section-eyebrow">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <span>AI FACE MATCH RESULTS</span>
+            </div>
+            <h2 class="matched-results-title">Your Matched Photos</h2>
+            <div id="results-count-badge" class="matched-count-badge"></div>
+          </div>
+
+          <div id="results-gallery" class="matched-photos-grid"></div>
+        </section>
       </div>
     </main>
 
+    <!-- High-Res Photo Viewer Lightbox Modal -->
+    <div id="photo-viewer-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-label="Photo Viewer">
+      <div class="modal-dialog photo-viewer-dialog">
+        <div class="photo-viewer-header">
+          <span class="photo-viewer-filename" id="viewer-photo-title">Photo Preview</span>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <a id="viewer-download-btn" class="btn btn-primary btn-sm" href="#" download>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Download</span>
+            </a>
+            <button type="button" id="close-viewer-btn" class="btn btn-ghost btn-icon" aria-label="Close photo viewer">&times;</button>
+          </div>
+        </div>
+        <div class="photo-viewer-img-container">
+          <img id="viewer-photo-img" class="photo-viewer-img" src="" alt="Full photo preview" />
+        </div>
+      </div>
+    </div>
+
     <!-- Live Camera Capture Modal -->
-    <div id="camera-modal" class="camera-modal-overlay hidden">
-      <div class="camera-modal-content" style="background: rgba(18, 22, 28, 0.95); border: 1px solid rgba(212, 175, 55, 0.3); color: #fff;">
-        <h3 style="margin-bottom: 0; color: #fff;">Take a Live Selfie</h3>
-        <p style="font-size: 0.85rem; margin-bottom: 0.5rem; color: rgba(255,255,255,0.7);">Align your face within the frame and click capture</p>
+    <div id="camera-modal" class="modal-backdrop" role="dialog" aria-modal="true">
+      <div class="modal-dialog" style="max-width: 480px;">
+        <h3 style="margin-bottom: 0.35rem;">Take a Live Selfie</h3>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">Align your face within the frame and click snap photo</p>
         
-        <div class="camera-viewport" style="border: 2px solid rgba(232, 93, 117, 0.5);">
-          <video id="camera-video" autoplay playsinline muted></video>
-          <div class="camera-overlay-frame"></div>
+        <div style="position: relative; width: 100%; aspect-ratio: 4/3; border-radius: var(--radius-md); overflow: hidden; background: #000; border: 2px solid var(--accent-rose);">
+          <video id="camera-video" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
         </div>
         <canvas id="camera-canvas" class="hidden"></canvas>
 
-        <div class="row" style="gap: 0.75rem; width: 100%; justify-content: center; margin-top: var(--space-sm);">
-          <button type="button" id="capture-photo-btn" class="btn-find-photos" style="max-width: 200px; padding: 0.65rem 1.2rem;">
-            📸 Snap Photo
-          </button>
-          <button type="button" id="close-camera-btn" class="dark-pill-btn">
+        <div class="modal-actions" style="margin-top: 1.25rem;">
+          <button type="button" id="close-camera-btn" class="btn btn-secondary">
             Cancel
+          </button>
+          <button type="button" id="capture-photo-btn" class="btn btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+            <span>Snap Photo</span>
           </button>
         </div>
       </div>
     </div>
 
     <!-- How It Works Modal -->
-    <div id="help-modal" class="camera-modal-overlay hidden">
-      <div class="camera-modal-content" style="background: rgba(18, 22, 28, 0.95); border: 1px solid rgba(212, 175, 55, 0.35); color: #fff; max-width: 440px; text-align: left;">
-        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 0.5rem;">
-          <h3 style="margin: 0; color: #fff; font-family: var(--font-display);">How It Works</h3>
-          <button type="button" id="close-help-btn" style="background: transparent; border: none; color: rgba(255,255,255,0.7); font-size: 20px; cursor: pointer;">&times;</button>
+    <div id="help-modal" class="modal-backdrop" role="dialog" aria-modal="true">
+      <div class="modal-dialog" style="text-align: left;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h3 style="margin: 0;">How It Works</h3>
+          <button type="button" id="close-help-btn" class="btn btn-ghost btn-icon">&times;</button>
         </div>
-        <div style="display: flex; flex-direction: column; gap: 0.85rem; margin: 0.5rem 0 1rem 0;">
+        <div style="display: flex; flex-direction: column; gap: 0.85rem; margin-bottom: 1.25rem;">
           <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
-            <span style="background: rgba(232, 93, 117, 0.2); color: #e85d75; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">1</span>
-            <p style="margin: 0; font-size: 0.88rem; color: rgba(255,255,255,0.85);"><strong>Select Event:</strong> Choose your event from the dropdown or enter the event code.</p>
+            <span style="background: var(--accent-rose-soft); color: var(--accent-rose); border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; font-size: 0.85rem;">1</span>
+            <p style="margin: 0; font-size: 0.875rem;"><strong>Select Event:</strong> Choose your event from the list or enter the event code.</p>
           </div>
           <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
-            <span style="background: rgba(232, 93, 117, 0.2); color: #e85d75; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">2</span>
-            <p style="margin: 0; font-size: 0.88rem; color: rgba(255,255,255,0.85);"><strong>Upload or Snap a Selfie:</strong> Take a photo or choose an existing clear portrait showing your face.</p>
+            <span style="background: var(--accent-rose-soft); color: var(--accent-rose); border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; font-size: 0.85rem;">2</span>
+            <p style="margin: 0; font-size: 0.875rem;"><strong>Upload or Snap a Selfie:</strong> Take a clear selfie or select a photo of your face.</p>
           </div>
           <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
-            <span style="background: rgba(232, 93, 117, 0.2); color: #e85d75; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">3</span>
-            <p style="margin: 0; font-size: 0.88rem; color: rgba(255,255,255,0.85);"><strong>Instant AI Face Match:</strong> Click "Find My Photos" to instantly see and download every picture you appear in!</p>
+            <span style="background: var(--accent-rose-soft); color: var(--accent-rose); border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; font-size: 0.85rem;">3</span>
+            <p style="margin: 0; font-size: 0.875rem;"><strong>Instant AI Match:</strong> Click "Find My Photos" to instantly see every event photo you appear in!</p>
           </div>
         </div>
-        <button type="button" id="got-it-help-btn" class="btn-find-photos" style="padding: 0.65rem 1.2rem; width: 100%;">
+        <button type="button" id="got-it-help-btn" class="btn btn-primary" style="width: 100%;">
           Got it, let's find photos!
         </button>
       </div>

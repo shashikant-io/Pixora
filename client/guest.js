@@ -39,27 +39,60 @@ function setupEventListeners() {
   if (headerHelpBtn) {
     headerHelpBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      helpModal.classList.remove("hidden");
+      helpModal.classList.add("active");
     });
   }
 
   if (howItWorksBtn) {
     howItWorksBtn.addEventListener("click", () => {
-      helpModal.classList.remove("hidden");
+      helpModal.classList.add("active");
     });
   }
 
   if (closeHelpBtn) {
     closeHelpBtn.addEventListener("click", () => {
-      helpModal.classList.add("hidden");
+      helpModal.classList.remove("active");
     });
   }
 
   if (gotItHelpBtn) {
     gotItHelpBtn.addEventListener("click", () => {
-      helpModal.classList.add("hidden");
+      helpModal.classList.remove("active");
     });
   }
+
+  // Back button handler
+  const backBtn = document.getElementById("guest-back-btn");
+  if (backBtn) {
+    backBtn.addEventListener("click", () => {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.href = "index.html";
+      }
+    });
+  }
+
+  // Photo viewer lightbox modal handlers
+  const closeViewerBtn = document.getElementById("close-viewer-btn");
+  const photoViewerModal = document.getElementById("photo-viewer-modal");
+  if (closeViewerBtn) {
+    closeViewerBtn.addEventListener("click", closePhotoViewer);
+  }
+  if (photoViewerModal) {
+    photoViewerModal.addEventListener("click", (e) => {
+      if (e.target === photoViewerModal) {
+        closePhotoViewer();
+      }
+    });
+  }
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closePhotoViewer();
+      closeCameraModal();
+      if (helpModal) helpModal.classList.remove("active");
+    }
+  });
 
   // File input change
   if (selfieInput) {
@@ -293,12 +326,26 @@ async function handleSearch() {
 
   const searchBtn = document.getElementById("search-btn");
   const galleryEl = document.getElementById("results-gallery");
-  const headingEl = document.getElementById("results-heading");
+  const resultsSection = document.getElementById("results-section");
+  const countBadge = document.getElementById("results-count-badge");
 
   searchBtn.disabled = true;
-  headingEl.classList.add("hidden");
-  galleryEl.innerHTML = "";
   setStatus("Matching your face using Buffalo ONNX Face AI…", "info");
+
+  // Show loading skeleton cards
+  if (resultsSection) resultsSection.classList.remove("hidden");
+  if (countBadge) countBadge.innerHTML = `<span>Matching faces…</span>`;
+  if (galleryEl) {
+    galleryEl.innerHTML = Array(3).fill(0).map(() => `
+      <div class="matched-photo-skeleton">
+        <div class="matched-photo-skeleton-img shimmer"></div>
+        <div class="matched-photo-skeleton-actions">
+          <div class="matched-photo-skeleton-btn shimmer"></div>
+          <div class="matched-photo-skeleton-btn shimmer"></div>
+        </div>
+      </div>
+    `).join("");
+  }
 
   try {
     const formData = new FormData();
@@ -317,6 +364,24 @@ async function handleSearch() {
 
     if (!data.matches || data.matches.length === 0) {
       setStatus("No matching photos found. Try uploading another clear selfie.", "info");
+      if (countBadge) countBadge.innerHTML = `<span>0 photos found</span>`;
+      if (galleryEl) {
+        galleryEl.innerHTML = `
+          <div class="matched-empty-state">
+            <div class="matched-empty-icon">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
+            <h3 style="font-size: 1.2rem; margin-bottom: 0.4rem; color: #fff;">No Matching Photos Found</h3>
+            <p style="font-size: 0.88rem; color: var(--text-secondary); margin: 0; line-height: 1.55;">
+              Try uploading another clear selfie or check again after more event photos have been uploaded.
+            </p>
+          </div>
+        `;
+      }
       return;
     }
 
@@ -326,6 +391,8 @@ async function handleSearch() {
   } catch (error) {
     console.error("Error searching:", error);
     setStatus(error.message || "Something went wrong while searching. Please try again.", "error");
+    if (galleryEl) galleryEl.innerHTML = "";
+    if (resultsSection) resultsSection.classList.add("hidden");
   } finally {
     updateSearchButtonState();
   }
@@ -333,24 +400,70 @@ async function handleSearch() {
 
 function renderResults(matches) {
   const galleryEl = document.getElementById("results-gallery");
-  const headingEl = document.getElementById("results-heading");
+  const resultsSection = document.getElementById("results-section");
+  const countBadge = document.getElementById("results-count-badge");
 
-  headingEl.classList.remove("hidden");
+  if (resultsSection) resultsSection.classList.remove("hidden");
+  if (countBadge) {
+    const count = matches.length;
+    countBadge.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>${count} photo${count === 1 ? "" : "s"} found</span>
+    `;
+  }
+
   galleryEl.innerHTML = matches
-    .map(
-      (match) => `
-      <div class="gallery-item" style="border: 1px solid rgba(212, 175, 55, 0.3); background: rgba(18, 22, 28, 0.88);">
-        <img src="${match.imageUrl}" alt="Matching wedding photo" loading="lazy" />
-        <div class="gallery-item-actions">
-          <a class="btn btn-secondary" style="color: #fff; border-color: rgba(255,255,255,0.2);" href="${match.imageUrl}" target="_blank" rel="noopener">View</a>
-          <a class="btn btn-primary" href="${match.imageUrl}?ik-attachment=true" download>Download</a>
+    .map((match, idx) => {
+      const safeUrl = match.imageUrl ? match.imageUrl.replace(/"/g, "&quot;") : "";
+      const fileName = `Matched Photo #${idx + 1}`;
+      return `
+      <div class="matched-photo-card">
+        <div class="matched-photo-img-wrapper">
+          <img src="${safeUrl}" alt="${fileName}" class="matched-photo-img" loading="lazy" />
+        </div>
+        <div class="matched-photo-actions">
+          <button type="button" class="btn btn-secondary view-photo-btn" data-url="${safeUrl}" data-title="${fileName}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>View</span>
+          </button>
+          <a class="btn btn-primary" href="${safeUrl}?ik-attachment=true" download="${fileName}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Download</span>
+          </a>
         </div>
       </div>
-    `
-    )
+    `;
+    })
     .join("");
 
-  headingEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  // Attach Lightbox click handlers to View buttons
+  galleryEl.querySelectorAll(".view-photo-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const url = btn.getAttribute("data-url");
+      const title = btn.getAttribute("data-title");
+      openPhotoViewer(url, title);
+    });
+  });
+
+  resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* Lightbox Modal Handlers */
+function openPhotoViewer(url, title) {
+  const modal = document.getElementById("photo-viewer-modal");
+  const img = document.getElementById("viewer-photo-img");
+  const titleEl = document.getElementById("viewer-photo-title");
+  const dlBtn = document.getElementById("viewer-download-btn");
+
+  if (img) img.src = url;
+  if (titleEl) titleEl.textContent = title || "Photo Preview";
+  if (dlBtn) dlBtn.href = `${url}?ik-attachment=true`;
+  if (modal) modal.classList.add("active");
+}
+
+function closePhotoViewer() {
+  const modal = document.getElementById("photo-viewer-modal");
+  if (modal) modal.classList.remove("active");
 }
 
 /* Camera capture handling */
@@ -364,7 +477,7 @@ async function openCameraModal() {
       audio: false,
     });
     video.srcObject = mediaStream;
-    modal.classList.remove("hidden");
+    modal.classList.add("active");
   } catch (err) {
     console.error("Camera access error:", err);
     setStatus("Camera access denied or unavailable. Please choose a photo from files.", "error");
@@ -382,7 +495,7 @@ function closeCameraModal() {
   if (video) {
     video.srcObject = null;
   }
-  modal.classList.add("hidden");
+  modal.classList.remove("active");
 }
 
 function captureCameraPhoto() {
@@ -416,10 +529,9 @@ function setStatus(text, type) {
   const banner = document.getElementById("guest-status-banner");
   if (banner) {
     banner.textContent = text;
-    banner.className = type === "success" 
-      ? "status-success-banner" 
-      : type === "error" 
-      ? "status-error-banner" 
-      : "status-info-banner";
+    banner.className = `message message-${type || "info"}`;
+    banner.style.width = "100%";
+    banner.style.justifyContent = "center";
+    banner.style.marginTop = "1rem";
   }
 }

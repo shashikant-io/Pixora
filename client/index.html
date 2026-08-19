@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Photo Finder — Find Yourself in Every Photo</title>
+  <title>Photo Finder — AI-Powered Event Photo Sharing for Every Occasion</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Work+Sans:wght@400;500;600&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap"
     rel="stylesheet"
   />
   <link rel="stylesheet" href="style.css" />
@@ -17,8 +18,8 @@
       <div class="container">
         <a href="index.html" class="brand">
           <svg class="brand-rings" viewBox="0 0 40 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <circle cx="14" cy="12" r="9" stroke="#c85c73" stroke-width="2.5" />
-            <circle cx="26" cy="12" r="9" stroke="#b98d45" stroke-width="2.5" />
+            <circle cx="14" cy="12" r="9" stroke="#f43f5e" stroke-width="2.5" />
+            <circle cx="26" cy="12" r="9" stroke="#f59e0b" stroke-width="2.5" />
           </svg>
           <span class="brand-name">Photo Finder</span>
         </a>
@@ -27,59 +28,466 @@
 
     <main class="main">
       <div class="container stack">
-        <div class="center-text" style="max-width: 680px; margin: 0 auto;">
-          <h1>Find yourself in <span class="gradient-text">every photo</span>.</h1>
-          <p style="font-size: 1.05rem; line-height: 1.6; color: rgba(255, 255, 255, 0.85); margin-top: 0.5rem;">
-            Upload a selfie, and our AI will find every photo from the event
-            where your face appears — no more scrolling through thousands of pictures.
+        <!-- Hero Section -->
+        <div class="center-text" style="max-width: 720px; margin: 0 auto; padding-top: 1rem;">
+          <h1 style="font-size: 2.75rem; letter-spacing: -0.03em; line-height: 1.2;">
+            Find yourself in <span style="background: linear-gradient(135deg, #f43f5e, #fb7185); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">every photo</span>.
+          </h1>
+          <p style="font-size: 1.05rem; line-height: 1.6; margin-top: 0.75rem;">
+            Upload a selfie, and our high-accuracy Buffalo AI face recognition finds every event photo where your face appears.
           </p>
         </div>
 
-        <div class="row" style="margin-top: var(--space-lg); justify-content: center; gap: 1.8rem;">
+        <!-- Role Action Cards -->
+        <div class="role-cards-container">
           <!-- Photographer Card -->
-          <a href="admin.html" class="card-link" style="max-width: 360px;">
-            <div class="card" style="text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: space-between; padding: 2.2rem 1.8rem;">
-              <div>
-                <div class="popup-top-icon" style="margin-bottom: 1.2rem;">
-                  <span style="font-size: 26px;">📸</span>
-                </div>
-                <h2 style="font-size: 1.45rem; margin-bottom: 0.5rem;">I'm the <span class="gradient-text">Photographer</span></h2>
-                <p style="font-size: 0.9rem; line-height: 1.5; color: rgba(255, 255, 255, 0.7); margin-bottom: 1.5rem;">
-                  Create an event, upload all photos, and generate a guest QR code for instant face matching.
-                </p>
-              </div>
-              <span class="btn-find-photos" style="width: 100%; text-decoration: none;">
-                Open Dashboard &rarr;
-              </span>
+          <a href="admin.html" class="role-selection-card role-card-photographer" aria-label="Open Photographer Dashboard">
+            <div class="role-card-icon-box photographer-icon-box">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                <circle cx="12" cy="13" r="3"/>
+              </svg>
+            </div>
+            <div class="role-card-content">
+              <span class="role-card-eyebrow">FOR EVENT CREATORS</span>
+              <h2 class="role-card-title">I'm the <span class="role-title-photographer">Photographer</span></h2>
+              <p class="role-card-desc">
+                Create wedding events, upload photos to ImageKit, and track cloud storage usage.
+              </p>
+            </div>
+            <div class="role-card-btn btn-cta-photographer">
+              <span>Open Dashboard</span>
+              <svg class="role-btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
             </div>
           </a>
 
           <!-- Guest Card -->
-          <a href="guest.html" class="card-link" style="max-width: 360px;">
-            <div class="card" style="text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: space-between; padding: 2.2rem 1.8rem;">
-              <div>
-                <div class="popup-top-icon" style="margin-bottom: 1.2rem; background: linear-gradient(135deg, #b98d45, #e5b869); box-shadow: 0 6px 22px rgba(229, 184, 105, 0.4);">
-                  <span style="font-size: 26px;">🤳</span>
-                </div>
-                <h2 style="font-size: 1.45rem; margin-bottom: 0.5rem;">I'm a <span class="gradient-text" style="background: linear-gradient(135deg, #e5b869, #f3d492); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Guest</span></h2>
-                <p style="font-size: 0.9rem; line-height: 1.5; color: rgba(255, 255, 255, 0.7); margin-bottom: 1.5rem;">
-                  Upload your selfie and instantly discover all photos of you with Buffalo AI face recognition.
-                </p>
-              </div>
-              <span class="btn-find-photos" style="width: 100%; text-decoration: none; background: linear-gradient(90deg, #b98d45 0%, #e5b869 50%, #c4943f 100%); box-shadow: 0 6px 24px rgba(229, 184, 105, 0.45);">
-                Find My Photos ✨
-              </span>
+          <a href="guest.html" class="role-selection-card role-card-guest" aria-label="Find Guest Photos">
+            <div class="role-card-icon-box guest-icon-box">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </div>
+            <div class="role-card-content">
+              <span class="role-card-eyebrow">FOR EVENT GUESTS</span>
+              <h2 class="role-card-title">I'm a <span class="role-title-guest">Guest</span></h2>
+              <p class="role-card-desc">
+                Upload a selfie or enter an event code to instantly discover all photos of you.
+              </p>
+            </div>
+            <div class="role-card-btn btn-cta-guest">
+              <span>Find My Photos</span>
+              <svg class="role-btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
             </div>
           </a>
         </div>
+
+        <!-- Interactive Scroll-Driven "Built for Every Event" Section -->
+        <section id="built-for-events" class="built-for-events-section" aria-label="Built for Every Event">
+          <div class="built-for-events-track" id="built-for-events-track">
+            <div class="built-for-events-sticky-wrapper">
+              <div class="center-text" style="max-width: 760px; margin: 0 auto;">
+                <div class="section-eyebrow">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  <span>BUILT FOR EVERY EVENT</span>
+                </div>
+                <h2 style="font-size: 2.15rem; letter-spacing: -0.025em; margin-bottom: 0.65rem;">
+                  AI-Powered Event Photo Sharing for <span class="text-accent-orange">Every Occasion</span>
+                </h2>
+                <p style="font-size: 1rem; line-height: 1.6; color: var(--text-secondary);">
+                  Photo Finder works for every type of event. Guests scan a QR code, take a quick selfie, and the photos are right there on their phone.
+                </p>
+              </div>
+
+              <!-- Two-Column Interactive Showcase -->
+              <div class="built-for-events-grid">
+                <!-- Left Column: Category Navigator -->
+                <div class="event-category-nav" role="tablist" aria-label="Event Categories">
+                  <!-- Category 0: Wedding -->
+                  <button
+                    type="button"
+                    class="event-category-card active"
+                    role="tab"
+                    aria-selected="true"
+                    tabindex="0"
+                    data-index="0"
+                    data-category="wedding"
+                    data-img="assets/event-wedding.jpg"
+                    data-tag="Wedding Guest Photo Sharing"
+                  >
+                    <div class="event-category-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                      </svg>
+                    </div>
+                    <div class="event-category-content">
+                      <h3 class="event-category-title">Wedding Guest Photo Sharing</h3>
+                      <p class="event-category-desc">
+                        Wedding guests scan a QR code at the venue, take a selfie, and find all their photos in seconds. No app download, no login needed.
+                      </p>
+                    </div>
+                  </button>
+
+                  <!-- Category 1: Corporate -->
+                  <button
+                    type="button"
+                    class="event-category-card"
+                    role="tab"
+                    aria-selected="false"
+                    tabindex="-1"
+                    data-index="1"
+                    data-category="corporate"
+                    data-img="assets/event-corporate.jpg"
+                    data-tag="Corporate Event Photo Delivery"
+                  >
+                    <div class="event-category-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="20" height="14" x="2" y="7" rx="2" ry="2"/>
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                      </svg>
+                    </div>
+                    <div class="event-category-content">
+                      <h3 class="event-category-title">Corporate Event Photo Delivery</h3>
+                      <p class="event-category-desc">
+                        Headshot sessions, product launches, team offsites and corporate events get their photos instantly without the photographer sending anything manually.
+                      </p>
+                    </div>
+                  </button>
+
+                  <!-- Category 2: Party & Club -->
+                  <button
+                    type="button"
+                    class="event-category-card"
+                    role="tab"
+                    aria-selected="false"
+                    tabindex="-1"
+                    data-index="2"
+                    data-category="party"
+                    data-img="assets/event-party.jpg"
+                    data-tag="Party & Club Photo Sharing"
+                  >
+                    <div class="event-category-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z" />
+                      </svg>
+                    </div>
+                    <div class="event-category-content">
+                      <h3 class="event-category-title">Party &amp; Club Photo Sharing</h3>
+                      <p class="event-category-desc">
+                        Birthday parties, anniversary celebrations and club nights let guests scan a QR code, take a selfie, and download their photos the same evening.
+                      </p>
+                    </div>
+                  </button>
+
+                  <!-- Category 3: School & Sports -->
+                  <button
+                    type="button"
+                    class="event-category-card"
+                    role="tab"
+                    aria-selected="false"
+                    tabindex="-1"
+                    data-index="3"
+                    data-category="school"
+                    data-img="assets/event-school.jpg"
+                    data-tag="School & Sports Day Galleries"
+                  >
+                    <div class="event-category-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                        <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                      </svg>
+                    </div>
+                    <div class="event-category-content">
+                      <h3 class="event-category-title">School &amp; Sports Day Galleries</h3>
+                      <p class="event-category-desc">
+                        School annual days, sports days and graduation ceremonies let parents find their child's photos using a selfie search. Secure and private only.
+                      </p>
+                    </div>
+                  </button>
+                </div>
+
+                <!-- Right Column: Image Preview Card -->
+                <div class="built-event-preview-card">
+                  <div class="built-event-tag" id="built-event-tag">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                    </svg>
+                    <span id="built-event-tag-text">Wedding Guest Photo Sharing</span>
+                  </div>
+                  <img
+                    id="built-event-preview-img"
+                    class="built-event-img"
+                    src="assets/event-wedding.jpg"
+                    alt="Wedding Guest Photo Sharing"
+                    loading="eager"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Platform Highlights Section -->
+        <section class="platform-highlights-section" aria-label="Platform Highlights">
+          <div class="center-text" style="max-width: 760px; margin: 0 auto;">
+            <div class="section-eyebrow">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+              <span>PLATFORM HIGHLIGHTS</span>
+            </div>
+            <h2 style="font-size: 2.15rem; letter-spacing: -0.025em; margin-bottom: 0.65rem;">
+              Event Sharing <span class="text-accent-orange">Made Effortless</span>
+            </h2>
+            <p style="font-size: 1rem; line-height: 1.6; color: var(--text-secondary); max-width: 680px; margin: 0 auto;">
+              A suite of powerful AI driven tools built to cut your event workflow time, save hours of manual sorting, and delight your clients.
+            </p>
+          </div>
+
+          <div class="platform-highlights-grid">
+            <!-- Card 1: Face Recognition -->
+            <div class="platform-feature-card">
+              <div class="platform-feature-img-wrapper">
+                <img
+                  src="assets/feature-face-recognition.jpg"
+                  alt="Face Recognition Illustration"
+                  class="platform-feature-img"
+                  loading="lazy"
+                />
+              </div>
+              <div class="platform-feature-body">
+                <h3 class="platform-feature-title">Face Recognition</h3>
+                <p class="platform-feature-desc">
+                  Guests can quickly find their own photos without searching through the full event.
+                </p>
+              </div>
+            </div>
+
+            <!-- Card 2: Easy Upload -->
+            <div class="platform-feature-card">
+              <div class="platform-feature-img-wrapper">
+                <img
+                  src="assets/feature-easy-upload.jpg"
+                  alt="Easy Upload Illustration"
+                  class="platform-feature-img"
+                  loading="lazy"
+                />
+              </div>
+              <div class="platform-feature-body">
+                <h3 class="platform-feature-title">Easy Upload</h3>
+                <p class="platform-feature-desc">
+                  Upload all your event photos together in just a few clicks.
+                </p>
+              </div>
+            </div>
+
+            <!-- Card 3: Private Sharing -->
+            <div class="platform-feature-card">
+              <div class="platform-feature-img-wrapper">
+                <img
+                  src="assets/feature-private-sharing.jpg"
+                  alt="Private Sharing Illustration"
+                  class="platform-feature-img"
+                  loading="lazy"
+                />
+              </div>
+              <div class="platform-feature-body">
+                <h3 class="platform-feature-title">Private Sharing</h3>
+                <p class="platform-feature-desc">
+                  Each guest sees only their photos for a smooth and secure experience.
+                </p>
+              </div>
+            </div>
+
+            <!-- Card 4: Event Albums -->
+            <div class="platform-feature-card">
+              <div class="platform-feature-img-wrapper">
+                <img
+                  src="assets/feature-event-albums.jpg"
+                  alt="Event Albums Illustration"
+                  class="platform-feature-img"
+                  loading="lazy"
+                />
+              </div>
+              <div class="platform-feature-body">
+                <h3 class="platform-feature-title">Event Albums</h3>
+                <p class="platform-feature-desc">
+                  Keep every event organized in one clean and easy to manage event.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
     </main>
 
     <footer class="site-footer">
       <div class="container">
-        Photo Finder
+        Photo Finder &mdash; Professional Event &amp; Wedding Photography Platform
       </div>
     </footer>
   </div>
+
+  <!-- Dual Click + Scroll-Driven Event Controller Script -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const categoryCards = Array.from(document.querySelectorAll(".event-category-card"));
+      const previewImg = document.getElementById("built-event-preview-img");
+      const tagText = document.getElementById("built-event-tag-text");
+      const tagContainer = document.getElementById("built-event-tag");
+      const track = document.getElementById("built-for-events-track");
+
+      let currentActiveIndex = 0;
+      let isProgrammaticScroll = false;
+      let scrollRafId = null;
+
+      const iconSvgs = {
+        wedding: `<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>`,
+        corporate: `<rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>`,
+        party: `<path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z"/>`,
+        school: `<path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>`
+      };
+
+      // Preload images for instant switching
+      const preloadUrls = [
+        "assets/event-wedding.jpg",
+        "assets/event-corporate.jpg",
+        "assets/event-party.jpg",
+        "assets/event-school.jpg"
+      ];
+      preloadUrls.forEach((url) => {
+        const img = new Image();
+        img.src = url;
+      });
+
+      // 1. Core Selection Function (Shared Source of Truth)
+      function selectCategory(index, isUserClick = false) {
+        if (index < 0 || index >= categoryCards.length) return;
+        if (index === currentActiveIndex && !isUserClick) return;
+
+        currentActiveIndex = index;
+        const activeCard = categoryCards[index];
+
+        categoryCards.forEach((card, i) => {
+          const isActive = i === index;
+          card.classList.toggle("active", isActive);
+          card.setAttribute("aria-selected", isActive ? "true" : "false");
+          card.setAttribute("tabindex", isActive ? "0" : "-1");
+        });
+
+        const imgSrc = activeCard.getAttribute("data-img");
+        const categoryKey = activeCard.getAttribute("data-category");
+        const tagLabel = activeCard.getAttribute("data-tag");
+
+        // Smooth image crossfade
+        if (previewImg) {
+          previewImg.classList.add("fade-out");
+
+          setTimeout(() => {
+            previewImg.src = imgSrc;
+            previewImg.alt = tagLabel;
+
+            if (tagText) tagText.textContent = tagLabel;
+            if (tagContainer && iconSvgs[categoryKey]) {
+              const svg = tagContainer.querySelector("svg");
+              if (svg) svg.innerHTML = iconSvgs[categoryKey];
+            }
+
+            previewImg.onload = () => {
+              previewImg.classList.remove("fade-out");
+            };
+            setTimeout(() => previewImg.classList.remove("fade-out"), 40);
+          }, 180);
+        }
+
+        // If clicked, smoothly sync the page scroll position to the corresponding track stage
+        if (isUserClick && track && window.innerWidth > 900) {
+          const trackTop = track.getBoundingClientRect().top + window.scrollY;
+          const scrollableDistance = track.offsetHeight - window.innerHeight;
+
+          if (scrollableDistance > 0) {
+            // Target anchor points for 4 stages: [0.05, 0.35, 0.65, 0.95]
+            const stageOffsets = [0.05, 0.35, 0.65, 0.95];
+            const targetScrollY = trackTop + stageOffsets[index] * scrollableDistance;
+
+            isProgrammaticScroll = true;
+            window.scrollTo({ top: targetScrollY, behavior: "smooth" });
+
+            setTimeout(() => {
+              isProgrammaticScroll = false;
+            }, 600);
+          }
+        }
+      }
+
+      // 2. Click & Keyboard Handlers
+      categoryCards.forEach((card, index) => {
+        card.addEventListener("click", (e) => {
+          e.preventDefault();
+          selectCategory(index, true);
+        });
+
+        card.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            selectCategory(index, true);
+          }
+        });
+      });
+
+      // 3. Scroll-Driven Sticky Observer with Hysteresis
+      function handleScroll() {
+        if (isProgrammaticScroll || !track || window.innerWidth <= 900) return;
+
+        const rect = track.getBoundingClientRect();
+        const scrollableDistance = track.offsetHeight - window.innerHeight;
+
+        if (scrollableDistance <= 0) return;
+
+        const scrolled = -rect.top;
+        const progress = Math.max(0, Math.min(1, scrolled / scrollableDistance));
+
+        // 4 Stages with hysteresis deadzone (0.02) to prevent jitter at boundaries
+        let targetIndex = currentActiveIndex;
+
+        if (currentActiveIndex === 0) {
+          if (progress >= 0.27) targetIndex = 1;
+        } else if (currentActiveIndex === 1) {
+          if (progress <= 0.23) targetIndex = 0;
+          else if (progress >= 0.52) targetIndex = 2;
+        } else if (currentActiveIndex === 2) {
+          if (progress <= 0.48) targetIndex = 1;
+          else if (progress >= 0.77) targetIndex = 3;
+        } else if (currentActiveIndex === 3) {
+          if (progress <= 0.73) targetIndex = 2;
+        }
+
+        if (targetIndex !== currentActiveIndex) {
+          selectCategory(targetIndex, false);
+        }
+      }
+
+      window.addEventListener(
+        "scroll",
+        () => {
+          if (!scrollRafId) {
+            scrollRafId = requestAnimationFrame(() => {
+              handleScroll();
+              scrollRafId = null;
+            });
+          }
+        },
+        { passive: true }
+      );
+
+      // Initial layout sync
+      handleScroll();
+    });
+  </script>
 </body>
 </html>
