@@ -1,0 +1,22 @@
+{
+  "watch": [
+    "server.js",
+    "controllers",
+    "routes",
+    "services",
+    "faceRecognition",
+    "utils",
+    "models"
+  ],
+  "ignore": [
+    "uploads/**",
+    "uploads/*",
+    "uploads",
+    "*.json",
+    ".env",
+    "models/buffalo_m/**",
+    "test_*.js"
+  ],
+  "ext": "js",
+  "delay": 1000
+}

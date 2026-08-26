@@ -1,31 +1,24 @@
 const Photo = require("../models/Photo");
 const { getStorageUsage } = require("../services/imagekitService");
 
-// Default 3 GB limit in bytes
-const DEFAULT_STORAGE_LIMIT_BYTES = 3 * 1024 * 1024 * 1024; // 3,221,225,472 bytes
-const DEFAULT_ESTIMATED_PHOTO_LIMIT = 1200; // ~2.5 MB per photo on 3 GB
+const DEFAULT_STORAGE_LIMIT_GB = 20; // 20 GB ImageKit Tier
+const DEFAULT_STORAGE_LIMIT_BYTES = DEFAULT_STORAGE_LIMIT_GB * 1024 * 1024 * 1024;
+const DEFAULT_ESTIMATED_PHOTO_LIMIT = Math.round((DEFAULT_STORAGE_LIMIT_GB * 1024) / 4); // ~5,000 photos
 
 async function getStorageStats(req, res) {
   try {
     const forceRefresh = req.query.force === "true" || req.query.refresh === "1";
     const usageData = await getStorageUsage(forceRefresh);
 
-    // Get count of photos saved in DB
     const dbPhotoCount = await Photo.countDocuments();
-    const photoCount = Math.max(dbPhotoCount, usageData.ikFileCount || 0);
+    const photoCount = Math.max(dbPhotoCount, usageData.fileCount || 0);
 
-    const storageLimitBytes = process.env.IMAGEKIT_STORAGE_LIMIT_BYTES
-      ? parseInt(process.env.IMAGEKIT_STORAGE_LIMIT_BYTES, 10)
-      : process.env.IMAGEKIT_STORAGE_LIMIT_GB
-      ? parseFloat(process.env.IMAGEKIT_STORAGE_LIMIT_GB) * 1024 * 1024 * 1024
-      : DEFAULT_STORAGE_LIMIT_BYTES;
-
+    const storageLimitBytes = usageData.totalQuotaBytes || DEFAULT_STORAGE_LIMIT_BYTES;
     const storageUsedBytes = usageData.mediaLibraryStorageBytes || 0;
-    const bandwidthBytes = usageData.bandwidthBytes || 0;
 
     const storagePercentage = Math.min(
       100,
-      parseFloat(((storageUsedBytes / storageLimitBytes) * 100).toFixed(1))
+      parseFloat(((storageUsedBytes / storageLimitBytes) * 100).toFixed(2))
     );
 
     const storageUsedMB = parseFloat((storageUsedBytes / (1024 * 1024)).toFixed(2));
@@ -37,7 +30,6 @@ async function getStorageStats(req, res) {
     const remainingMB = parseFloat((remainingBytes / (1024 * 1024)).toFixed(2));
     const remainingGB = parseFloat((remainingBytes / (1024 * 1024 * 1024)).toFixed(3));
 
-    // Dynamic or baseline photo capacity estimate
     let photoLimitEstimated = DEFAULT_ESTIMATED_PHOTO_LIMIT;
     if (photoCount > 5 && storageUsedBytes > 0) {
       const avgPhotoSize = storageUsedBytes / photoCount;
@@ -63,14 +55,10 @@ async function getStorageStats(req, res) {
       storagePercentage,
       photoCount,
       photoLimitEstimated,
-      bandwidthUsedBytes: bandwidthBytes,
-      bandwidthUsedMB: parseFloat((bandwidthBytes / (1024 * 1024)).toFixed(2)),
-      bandwidthUsedGB: parseFloat((bandwidthBytes / (1024 * 1024 * 1024)).toFixed(3)),
-      bandwidthLimitGB: 20,
       isFull,
       isNearFull,
-      planName: "ImageKit Free Plan (3 GB)",
-      upgradeUrl: process.env.IMAGEKIT_UPGRADE_URL || "https://imagekit.io/plans",
+      planName: `ImageKit.io CDN (${storageLimitGB} GB Free Plan)`,
+      upgradeUrl: "https://imagekit.io/dashboard/developer",
       lastUpdated: usageData.fetchedAt || new Date().toISOString(),
     });
   } catch (error) {

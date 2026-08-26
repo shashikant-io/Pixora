@@ -19,9 +19,29 @@ async function processPhotoFaces(imageBuffer) {
   const detections = await detectFaces(imageBuffer);
   const faces = [];
 
+  if (!detections || detections.length === 0) {
+    return faces;
+  }
+
+  // Pre-decode full raw image buffer once for all detected faces in this photo
+  let preDecoded = null;
+  try {
+    const sharpInstance = sharp(imageBuffer);
+    const metadata = await sharpInstance.metadata();
+    const rawImage = await sharp(imageBuffer).raw().toBuffer();
+    preDecoded = {
+      rawImage,
+      imgW: metadata.width,
+      imgH: metadata.height,
+      channels: metadata.channels || 3,
+    };
+  } catch (decodeErr) {
+    console.warn("Raw image pre-decode notice:", decodeErr.message);
+  }
+
   for (const det of detections) {
     try {
-      const embedding = await generateEmbedding(imageBuffer, det.landmarks);
+      const embedding = await generateEmbedding(imageBuffer, det.landmarks, preDecoded);
       faces.push({
         embedding,
         boundingBox: det.boundingBox,

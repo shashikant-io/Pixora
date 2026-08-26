@@ -90,9 +90,24 @@ function setupEventListeners() {
     if (e.key === "Escape") {
       closePhotoViewer();
       closeCameraModal();
+      closeAiScanner();
       if (helpModal) helpModal.classList.remove("active");
     }
   });
+
+  // Scanner overlay handlers
+  const scannerCloseBtn = document.getElementById("ai-scanner-close-btn");
+  const scannerDismissBtn = document.getElementById("ai-scanner-dismiss-btn");
+  const scannerRetakeBtn = document.getElementById("ai-scanner-retake-btn");
+  if (scannerCloseBtn) {
+    scannerCloseBtn.addEventListener("click", closeAiScanner);
+  }
+  if (scannerDismissBtn) {
+    scannerDismissBtn.addEventListener("click", closeAiScanner);
+  }
+  if (scannerRetakeBtn) {
+    scannerRetakeBtn.addEventListener("click", retakeSelfieFromScanner);
+  }
 
   // File input change
   if (selfieInput) {
@@ -277,18 +292,19 @@ function handleSelfieSelected(file) {
 
   currentSelfieFile = file;
 
-  // Instant image preview
+  // Instant image preview in dropzone
   previewEl.src = URL.createObjectURL(file);
   defaultContent.classList.add("hidden");
   previewContent.classList.remove("hidden");
 
+  updateSearchButtonState();
+
   if (currentEventId) {
-    setStatus("Selfie ready ✓ Click 'Find My Photos' to search!", "info");
+    setStatus("AI Biometric Scanner active…", "info");
+    runAiFaceScanSequence(file);
   } else {
     setStatus("Selfie uploaded ✓ Please choose your wedding event to proceed.", "info");
   }
-
-  updateSearchButtonState();
 }
 
 function clearSelfie() {
@@ -314,25 +330,86 @@ function updateSearchButtonState() {
   }
 }
 
-async function handleSearch() {
-  if (!currentSelfieFile || !currentEventId) {
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+let isScanning = false;
+let scannerSuccessTimer = null;
+
+function openAiScanner(file) {
+  if (scannerSuccessTimer) {
+    clearTimeout(scannerSuccessTimer);
+    scannerSuccessTimer = null;
+  }
+  const overlay = document.getElementById("ai-scanner-overlay");
+  const img = document.getElementById("ai-scanner-img");
+  const activeView = document.getElementById("ai-scanner-active-view");
+  const errorCard = document.getElementById("ai-scanner-error-card");
+  const statusText = document.getElementById("ai-scanner-status-text");
+  const stepLabel = document.getElementById("ai-scanner-step-label");
+  const progressBar = document.getElementById("ai-scanner-progress-bar");
+
+  if (file && img) {
+    img.src = URL.createObjectURL(file);
+  }
+
+  if (activeView) activeView.classList.remove("hidden");
+  if (errorCard) errorCard.classList.add("hidden");
+  if (statusText) {
+    statusText.textContent = "PHOTO RECEIVED";
+    statusText.style.color = "";
+  }
+  if (stepLabel) stepLabel.textContent = "STEP 1/6";
+  if (progressBar) progressBar.style.width = "16%";
+
+  if (overlay) overlay.classList.remove("hidden");
+}
+
+function closeAiScanner() {
+  if (scannerSuccessTimer) {
+    clearTimeout(scannerSuccessTimer);
+    scannerSuccessTimer = null;
+  }
+  const overlay = document.getElementById("ai-scanner-overlay");
+  if (overlay) overlay.classList.add("hidden");
+  isScanning = false;
+}
+
+function retakeSelfieFromScanner() {
+  closeAiScanner();
+  const selfieInput = document.getElementById("selfie-input");
+  if (selfieInput) {
+    selfieInput.value = "";
+    selfieInput.click();
+  }
+}
+
+async function runAiFaceScanSequence(file) {
+  if (!file || !currentEventId) {
     if (!currentEventId) {
-      setStatus("Please select a wedding event before searching.", "error");
-    } else if (!currentSelfieFile) {
+      setStatus("Please select a wedding event before scanning.", "error");
+    } else if (!file) {
       setStatus("Please upload or take a selfie first.", "error");
     }
     return;
   }
 
+  if (isScanning) return;
+  isScanning = true;
+
+  openAiScanner(file);
+
   const searchBtn = document.getElementById("search-btn");
   const galleryEl = document.getElementById("results-gallery");
   const resultsSection = document.getElementById("results-section");
   const countBadge = document.getElementById("results-count-badge");
+  const statusText = document.getElementById("ai-scanner-status-text");
+  const stepLabel = document.getElementById("ai-scanner-step-label");
+  const progressBar = document.getElementById("ai-scanner-progress-bar");
+  const activeView = document.getElementById("ai-scanner-active-view");
+  const errorCard = document.getElementById("ai-scanner-error-card");
 
-  searchBtn.disabled = true;
-  setStatus("Matching your face using Buffalo ONNX Face AI…", "info");
+  if (searchBtn) searchBtn.disabled = true;
 
-  // Show loading skeleton cards
+  // Background loading skeleton
   if (resultsSection) resultsSection.classList.remove("hidden");
   if (countBadge) countBadge.innerHTML = `<span>Matching faces…</span>`;
   if (galleryEl) {
@@ -347,20 +424,83 @@ async function handleSearch() {
     `).join("");
   }
 
-  try {
-    const formData = new FormData();
-    formData.append("selfie", currentSelfieFile);
-    formData.append("eventId", currentEventId);
+  // Trigger backend facial analysis & photo search in parallel
+  const formData = new FormData();
+  formData.append("selfie", file);
+  formData.append("eventId", currentEventId);
 
-    const response = await fetch(`${API_BASE_URL}/search`, {
-      method: "POST",
-      body: formData,
+  const searchPromise = fetch(`${API_BASE_URL}/search`, {
+    method: "POST",
+    body: formData,
+  })
+    .then(async (res) => {
+      const data = await res.json();
+      return { ok: res.ok, data };
+    })
+    .catch((err) => {
+      return { ok: false, data: { success: false, message: err.message || "Connection error" } };
     });
-    const data = await response.json();
 
-    if (!data.success) {
-      throw new Error(data.message || "Search failed.");
+  try {
+    // Step 1: PHOTO RECEIVED (Already displayed)
+    await delay(450);
+
+    // Step 2: FACE DETECTED
+    if (stepLabel) stepLabel.textContent = "STEP 2/6";
+    if (statusText) statusText.textContent = "FACE DETECTED";
+    if (progressBar) progressBar.style.width = "33%";
+    await delay(500);
+
+    // Step 3: SCANNING FACE...
+    if (stepLabel) stepLabel.textContent = "STEP 3/6";
+    if (statusText) statusText.textContent = "SCANNING FACE...";
+    if (progressBar) progressBar.style.width = "52%";
+    await delay(550);
+
+    // Step 4: ANALYZING FEATURES...
+    if (stepLabel) stepLabel.textContent = "STEP 4/6";
+    if (statusText) statusText.textContent = "ANALYZING FEATURES...";
+    if (progressBar) progressBar.style.width = "72%";
+    await delay(550);
+
+    // Step 5: SEARCHING EVENT PHOTOS...
+    if (stepLabel) stepLabel.textContent = "STEP 5/6";
+    if (statusText) statusText.textContent = "SEARCHING EVENT PHOTOS...";
+    if (progressBar) progressBar.style.width = "88%";
+
+    // Await server result
+    const result = await searchPromise;
+    const data = result.data;
+
+    // Check if face was detected or error occurred
+    if (!result.ok || !data.success) {
+      if (activeView) activeView.classList.add("hidden");
+      if (errorCard) errorCard.classList.remove("hidden");
+      setStatus("No face detected in selfie. Please upload a clear photo showing your face.", "error");
+      if (galleryEl) galleryEl.innerHTML = "";
+      if (resultsSection) resultsSection.classList.add("hidden");
+      isScanning = false;
+      return;
     }
+
+    // Step 6: FACE VERIFIED (100% completed state)
+    if (stepLabel) stepLabel.textContent = "STEP 6/6";
+    if (statusText) {
+      statusText.textContent = "FACE VERIFIED";
+      statusText.style.color = "#10b981";
+    }
+    if (progressBar) progressBar.style.width = "100%";
+
+    // Hold the completed/successful scan state visible for 3 seconds
+    await new Promise((resolve) => {
+      scannerSuccessTimer = setTimeout(() => {
+        scannerSuccessTimer = null;
+        resolve();
+      }, 3000);
+    });
+
+    // Automatically hide scanning overlay and continue with matched-photo flow
+    closeAiScanner();
 
     if (!data.matches || data.matches.length === 0) {
       setStatus("No matching photos found. Try uploading another clear selfie.", "info");
@@ -386,16 +526,30 @@ async function handleSearch() {
     }
 
     const count = data.matches.length;
-    setStatus(`✓ Found ${count} photo${count === 1 ? "" : "s"} of you! 🎉`, "success");
+    setStatus(`✓ Found ${count} photo${count === 1 ? "" : "s"} of you!`, "success");
     renderResults(data.matches);
   } catch (error) {
-    console.error("Error searching:", error);
-    setStatus(error.message || "Something went wrong while searching. Please try again.", "error");
-    if (galleryEl) galleryEl.innerHTML = "";
-    if (resultsSection) resultsSection.classList.add("hidden");
+    console.error("Error during face scanning:", error);
+    if (activeView) activeView.classList.add("hidden");
+    if (errorCard) errorCard.classList.remove("hidden");
+    setStatus("Something went wrong while scanning. Please try again.", "error");
+    isScanning = false;
   } finally {
     updateSearchButtonState();
   }
+}
+
+async function handleSearch() {
+  if (!currentSelfieFile || !currentEventId) {
+    if (!currentEventId) {
+      setStatus("Please select a wedding event before searching.", "error");
+    } else if (!currentSelfieFile) {
+      setStatus("Please upload or take a selfie first.", "error");
+    }
+    return;
+  }
+
+  runAiFaceScanSequence(currentSelfieFile);
 }
 
 function renderResults(matches) {
@@ -415,18 +569,20 @@ function renderResults(matches) {
   galleryEl.innerHTML = matches
     .map((match, idx) => {
       const safeUrl = match.imageUrl ? match.imageUrl.replace(/"/g, "&quot;") : "";
+      const thumbnailUrl = match.thumbnailUrl ? match.thumbnailUrl.replace(/"/g, "&quot;") : safeUrl;
+      const downloadUrl = match.downloadUrl ? match.downloadUrl.replace(/"/g, "&quot;") : safeUrl;
       const fileName = `Matched Photo #${idx + 1}`;
       return `
       <div class="matched-photo-card">
         <div class="matched-photo-img-wrapper">
-          <img src="${safeUrl}" alt="${fileName}" class="matched-photo-img" loading="lazy" />
+          <img src="${thumbnailUrl}" alt="${fileName}" class="matched-photo-img" loading="lazy" onerror="if(this.src !== '${safeUrl}'){this.src='${safeUrl}';}else{this.onerror=null;}" />
         </div>
         <div class="matched-photo-actions">
-          <button type="button" class="btn btn-secondary view-photo-btn" data-url="${safeUrl}" data-title="${fileName}">
+          <button type="button" class="btn btn-secondary view-photo-btn" data-url="${safeUrl}" data-download="${downloadUrl}" data-title="${fileName}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
             <span>View</span>
           </button>
-          <a class="btn btn-primary" href="${safeUrl}?ik-attachment=true" download="${fileName}">
+          <a class="btn btn-primary" href="${downloadUrl}" download="${fileName}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             <span>Download</span>
           </a>
@@ -440,8 +596,9 @@ function renderResults(matches) {
   galleryEl.querySelectorAll(".view-photo-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const url = btn.getAttribute("data-url");
+      const downloadUrl = btn.getAttribute("data-download") || url;
       const title = btn.getAttribute("data-title");
-      openPhotoViewer(url, title);
+      openPhotoViewer(url, title, downloadUrl);
     });
   });
 
@@ -449,7 +606,7 @@ function renderResults(matches) {
 }
 
 /* Lightbox Modal Handlers */
-function openPhotoViewer(url, title) {
+function openPhotoViewer(url, title, downloadUrl) {
   const modal = document.getElementById("photo-viewer-modal");
   const img = document.getElementById("viewer-photo-img");
   const titleEl = document.getElementById("viewer-photo-title");
@@ -457,7 +614,7 @@ function openPhotoViewer(url, title) {
 
   if (img) img.src = url;
   if (titleEl) titleEl.textContent = title || "Photo Preview";
-  if (dlBtn) dlBtn.href = `${url}?ik-attachment=true`;
+  if (dlBtn) dlBtn.href = downloadUrl || (url ? url.replace("/file/", "/download/") : "#");
   if (modal) modal.classList.add("active");
 }
 

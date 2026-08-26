@@ -22,17 +22,39 @@ const photoSchema = new mongoose.Schema({
     required: true,
     index: true,
   },
+  storageProvider: {
+    type: String,
+    default: "imagekit",
+  },
+  fileId: {
+    type: String,
+    index: true,
+  },
+  // Backward compatibility alias for existing records
   imageKitFileId: {
     type: String,
-    required: true,
   },
   imageUrl: {
     type: String,
     required: true,
   },
+  thumbnailUrl: {
+    type: String,
+  },
+  downloadUrl: {
+    type: String,
+  },
   filePath: {
     type: String,
     required: true,
+  },
+  fileSize: {
+    type: Number,
+    default: 0,
+  },
+  mimeType: {
+    type: String,
+    default: "image/jpeg",
   },
   faces: {
     type: [faceSchema],
@@ -42,6 +64,19 @@ const photoSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+});
+
+// Getter fallback: if fileId is requested, return fileId or legacy imageKitFileId
+photoSchema.virtual("effectiveFileId").get(function () {
+  return this.fileId || this.imageKitFileId;
+});
+
+// Pre-save hook to ensure fileId is populated if legacy imageKitFileId was provided
+photoSchema.pre("save", function (next) {
+  if (!this.fileId && this.imageKitFileId) {
+    this.fileId = this.imageKitFileId;
+  }
+  next();
 });
 
 module.exports = mongoose.model("Photo", photoSchema);

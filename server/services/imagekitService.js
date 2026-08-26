@@ -1,150 +1,168 @@
 const ImageKit = require("imagekit");
 
-if (
-  !process.env.IMAGEKIT_PUBLIC_KEY ||
-  !process.env.IMAGEKIT_PRIVATE_KEY ||
-  !process.env.IMAGEKIT_URL_ENDPOINT
-) {
-  console.error("Missing ImageKit credentials in .env");
-  process.exit(1);
+let imagekitInstance = null;
+
+function getImageKitClient() {
+  if (imagekitInstance) {
+    return imagekitInstance;
+  }
+
+  const publicKey = process.env.IMAGEKIT_PUBLIC_KEY;
+  const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
+  const urlEndpoint = process.env.IMAGEKIT_URL_ENDPOINT;
+
+  if (!publicKey || !privateKey || !urlEndpoint) {
+    console.error("ImageKit credentials missing in environment variables.");
+  }
+
+  imagekitInstance = new ImageKit({
+    publicKey: publicKey || "",
+    privateKey: privateKey || "",
+    urlEndpoint: urlEndpoint || "",
+  });
+
+  return imagekitInstance;
 }
 
-const imagekit = new ImageKit({
-  publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
-  privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
-  urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT,
-});
+/**
+ * Uploads an image buffer directly to ImageKit CDN
+ * @param {Buffer} fileBuffer - Image binary buffer
+ * @param {string} originalName - Original file name
+ * @param {string} eventId - Associated wedding event ID
+ * @returns {Promise<{fileId: string, url: string, thumbnailUrl: string, downloadUrl: string, filePath: string, size: number}>}
+ */
+async function uploadImage(fileBuffer, originalName, eventId) {
+  const imagekit = getImageKitClient();
+  const folder = `/wedding-photo-finder/events/${eventId}/photos`;
+  const safeName = originalName || `photo_${Date.now()}.jpg`;
 
-async function uploadImage(fileBuffer, fileName, folder) {
-  const result = await imagekit.upload({
-    file: fileBuffer,
-    fileName,
-    folder,
+  const response = await imagekit.upload({
+    file: fileBuffer.toString("base64"),
+    fileName: safeName,
+    folder: folder,
+    tags: [eventId, "wedding-photo"],
     useUniqueFileName: true,
   });
 
+  const thumbnailUrl = imagekit.url({
+    src: response.url,
+    transformation: [
+      {
+        height: "300",
+        width: "300",
+        quality: "80",
+        crop: "maintain_ratio",
+      },
+    ],
+  });
+
+  const downloadUrl = `${response.url}?ik-attachment=true`;
+
   return {
-    fileId: result.fileId,
-    url: result.url,
-    filePath: result.filePath,
+    fileId: response.fileId,
+    url: response.url,
+    thumbnailUrl: thumbnailUrl || response.thumbnailUrl || response.url,
+    downloadUrl: downloadUrl,
+    filePath: response.filePath,
+    name: response.name,
+    size: response.size || fileBuffer.length,
   };
 }
 
+/**
+ * Deletes a single image from ImageKit
+ * @param {string} fileId - ImageKit file ID
+ */
 async function deleteImage(fileId) {
-  await imagekit.deleteFile(fileId);
-}
-
-async function bulkDeleteImages(fileIds) {
-  if (!fileIds || fileIds.length === 0) return;
+  if (!fileId) return;
+  const imagekit = getImageKitClient();
   try {
-    if (typeof imagekit.bulkDeleteFiles === "function") {
-      await imagekit.bulkDeleteFiles(fileIds);
-    } else {
-      for (const id of fileIds) {
-        await imagekit.deleteFile(id).catch(() => { });
-      }
-    }
+    await imagekit.deleteFile(fileId);
   } catch (err) {
-    console.warn("Bulk delete error, falling back to individual deletes:", err.message);
-    for (const id of fileIds) {
-      await imagekit.deleteFile(id).catch(() => { });
+    if (err.statusCode !== 404) {
+      console.warn(`Failed to delete ImageKit file "${fileId}":`, err.message);
     }
   }
 }
 
-async function deleteFolder(folderPath) {
-  if (!folderPath) return;
+/**
+ * Deletes multiple images from ImageKit
+ * @param {string[]} fileIds - Array of ImageKit file IDs
+ */
+async function bulkDeleteImages(fileIds) {
+  if (!Array.isArray(fileIds) || fileIds.length === 0) return;
+  const imagekit = getImageKitClient();
+  const validIds = fileIds.filter(Boolean);
+
+  if (validIds.length === 0) return;
+
+  try {
+    if (typeof imagekit.bulkDeleteFiles === "function") {
+      await imagekit.bulkDeleteFiles(validIds);
+    } else {
+      await Promise.allSettled(validIds.map((id) => imagekit.deleteFile(id)));
+    }
+  } catch (err) {
+    console.warn("Bulk delete from ImageKit notice:", err.message);
+  }
+}
+
+/**
+ * Deletes an entire event folder from ImageKit
+ * @param {string} eventId - Wedding Event ID
+ */
+async function deleteFolder(eventId) {
+  if (!eventId) return;
+  const imagekit = getImageKitClient();
+  const folderPath = `/wedding-photo-finder/events/${eventId}`;
+
   try {
     if (typeof imagekit.deleteFolder === "function") {
       await imagekit.deleteFolder(folderPath);
     }
   } catch (err) {
-    console.warn(`Failed to delete ImageKit folder "${folderPath}":`, err.message);
+    if (err.statusCode !== 404) {
+      console.warn(`Failed to delete ImageKit folder "${folderPath}":`, err.message);
+    }
   }
 }
 
-// In-memory cache for storage usage to reduce unnecessary API requests
-let usageCache = {
-  data: null,
-  timestamp: 0,
-};
-const CACHE_TTL_MS = 30 * 1000; // 30 seconds TTL
+let usageCache = { data: null, timestamp: 0 };
+const CACHE_TTL = 30 * 1000;
 
+/**
+ * Retrieves storage usage statistics
+ */
 async function getStorageUsage(forceRefresh = false) {
   const now = Date.now();
-  if (!forceRefresh && usageCache.data && now - usageCache.timestamp < CACHE_TTL_MS) {
+  if (!forceRefresh && usageCache.data && now - usageCache.timestamp < CACHE_TTL) {
     return usageCache.data;
   }
 
-  let mediaLibraryStorageBytes = 0;
-  let bandwidthBytes = 0;
-  let rawUsage = null;
-  let ikFileCount = 0;
-  let ikTotalFileBytes = 0;
+  let totalBytes = 0;
+  let totalFiles = 0;
+  const totalLimitBytes = 20 * 1024 * 1024 * 1024; // 20 GB ImageKit Tier
 
-  // 1. Fetch from ImageKit accounts usage API
   try {
-    const today = new Date();
-    const prior = new Date();
-    prior.setDate(prior.getDate() - 30);
-    const startDate = prior.toISOString().split("T")[0];
-    const endDate = today.toISOString().split("T")[0];
-
-    const auth = Buffer.from(process.env.IMAGEKIT_PRIVATE_KEY + ":").toString("base64");
-    const url = `https://api.imagekit.io/v1/accounts/usage?startDate=${startDate}&endDate=${endDate}`;
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Basic ${auth}`,
-      },
-    });
-
-    if (response.ok) {
-      rawUsage = await response.json();
-      if (rawUsage && typeof rawUsage.mediaLibraryStorageBytes === "number") {
-        mediaLibraryStorageBytes = rawUsage.mediaLibraryStorageBytes;
-      }
-      if (rawUsage && typeof rawUsage.bandwidthBytes === "number") {
-        bandwidthBytes = rawUsage.bandwidthBytes;
-      }
-    } else {
-      console.warn(`ImageKit /accounts/usage returned status ${response.status}`);
+    const mongoose = require("mongoose");
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      const Photo = require("../models/Photo");
+      const photos = await Photo.find({}, "fileSize");
+      totalFiles = photos.length;
+      totalBytes = photos.reduce((sum, p) => sum + (p.fileSize || 0), 0);
     }
-  } catch (usageErr) {
-    console.warn("Failed to fetch ImageKit usage endpoint:", usageErr.message);
-  }
-
-  // 2. Query ImageKit files list as verification / fallback
-  try {
-    const files = await imagekit.listFiles({ limit: 1000 });
-    if (Array.isArray(files)) {
-      ikFileCount = files.length;
-      ikTotalFileBytes = files.reduce((acc, f) => acc + (f.size || 0), 0);
-
-      // If accounts/usage is cached by ImageKit or returned 0, use exact file sizes sum if higher
-      if (mediaLibraryStorageBytes === 0 && ikTotalFileBytes > 0) {
-        mediaLibraryStorageBytes = ikTotalFileBytes;
-      }
-    }
-  } catch (listErr) {
-    console.warn("Failed to list files from ImageKit:", listErr.message);
+  } catch (e) {
+    // DB fallback
   }
 
   const result = {
-    mediaLibraryStorageBytes,
-    bandwidthBytes,
-    ikFileCount,
-    ikTotalFileBytes,
-    rawUsage,
+    mediaLibraryStorageBytes: totalBytes,
+    totalQuotaBytes: totalLimitBytes,
+    fileCount: totalFiles,
     fetchedAt: new Date().toISOString(),
   };
 
-  usageCache = {
-    data: result,
-    timestamp: now,
-  };
-
+  usageCache = { data: result, timestamp: now };
   return result;
 }
 
@@ -154,7 +172,7 @@ function invalidateStorageUsageCache() {
 }
 
 module.exports = {
-  imagekit,
+  getImageKitClient,
   uploadImage,
   deleteImage,
   bulkDeleteImages,
@@ -162,4 +180,3 @@ module.exports = {
   getStorageUsage,
   invalidateStorageUsageCache,
 };
-

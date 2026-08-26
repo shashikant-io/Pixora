@@ -7,19 +7,24 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
     rel="stylesheet"
   />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="page">
-    <header class="site-header">
+  <div class="aura-bg">
+    <div class="aura-layer-1" aria-hidden="true"></div>
+    <div class="aura-layer-2" aria-hidden="true"></div>
+    <div class="aura-layer-3" aria-hidden="true"></div>
+    <div class="aura-layer-4" aria-hidden="true"></div>
+    <div class="page" style="position: relative; z-index: 1;">
+      <header class="site-header">
       <div class="container">
         <a href="index.html" class="brand">
           <svg class="brand-rings" viewBox="0 0 40 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <circle cx="14" cy="12" r="9" stroke="#f43f5e" stroke-width="2.5" />
-            <circle cx="26" cy="12" r="9" stroke="#f59e0b" stroke-width="2.5" />
+            <circle cx="14" cy="12" r="9" stroke="#FFFFFF" stroke-width="2.5" />
+            <circle cx="26" cy="12" r="9" stroke="#71717A" stroke-width="2.5" />
           </svg>
           <span class="brand-name">Photo Finder</span>
         </a>
@@ -30,10 +35,10 @@
       <div class="container stack">
         <!-- Hero Section -->
         <div class="center-text" style="max-width: 720px; margin: 0 auto; padding-top: 1rem;">
-          <h1 style="font-size: 2.75rem; letter-spacing: -0.03em; line-height: 1.2;">
-            Find yourself in <span style="background: linear-gradient(135deg, #f43f5e, #fb7185); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">every photo</span>.
+          <h1 style="font-size: 2.75rem; letter-spacing: -0.035em; line-height: 1.15; font-weight: 700; color: #FFFFFF;">
+            Find yourself in <span style="color: #FFFFFF;">every photo</span>.
           </h1>
-          <p style="font-size: 1.05rem; line-height: 1.6; margin-top: 0.75rem;">
+          <p style="font-size: 1.05rem; line-height: 1.6; margin-top: 0.75rem; color: var(--text-secondary);">
             Upload a selfie, and our high-accuracy Buffalo AI face recognition finds every event photo where your face appears.
           </p>
         </div>
@@ -52,7 +57,7 @@
               <span class="role-card-eyebrow">FOR EVENT CREATORS</span>
               <h2 class="role-card-title">I'm the <span class="role-title-photographer">Photographer</span></h2>
               <p class="role-card-desc">
-                Create wedding events, upload photos to ImageKit, and track cloud storage usage.
+                Create wedding events, upload photos to ImageKit CDN, and track cloud storage usage.
               </p>
             </div>
             <div class="role-card-btn btn-cta-photographer">
@@ -332,6 +337,7 @@
       </div>
     </footer>
   </div>
+  </div>
 
   <!-- Dual Click + Scroll-Driven Event Controller Script -->
   <script>
@@ -404,14 +410,13 @@
             setTimeout(() => previewImg.classList.remove("fade-out"), 40);
           }, 180);
         }
-
-        // If clicked, smoothly sync the page scroll position to the corresponding track stage
+        // If user manually clicked/tapped, smoothly sync scroll position to that stage
         if (isUserClick && track && window.innerWidth > 900) {
           const trackTop = track.getBoundingClientRect().top + window.scrollY;
           const scrollableDistance = track.offsetHeight - window.innerHeight;
 
           if (scrollableDistance > 0) {
-            // Target anchor points for 4 stages: [0.05, 0.35, 0.65, 0.95]
+            // Anchor targets for 4 stages: [0.05, 0.35, 0.65, 0.95]
             const stageOffsets = [0.05, 0.35, 0.65, 0.95];
             const targetScrollY = trackTop + stageOffsets[index] * scrollableDistance;
 
@@ -440,7 +445,7 @@
         });
       });
 
-      // 3. Scroll-Driven Sticky Observer with Hysteresis
+      // 3. Scroll-Driven Observer (Active on Desktop Sticky Track)
       function handleScroll() {
         if (isProgrammaticScroll || !track || window.innerWidth <= 900) return;
 
@@ -452,7 +457,7 @@
         const scrolled = -rect.top;
         const progress = Math.max(0, Math.min(1, scrolled / scrollableDistance));
 
-        // 4 Stages with hysteresis deadzone (0.02) to prevent jitter at boundaries
+        // 4 Stages with hysteresis deadzone to prevent rapid flickering around thresholds
         let targetIndex = currentActiveIndex;
 
         if (currentActiveIndex === 0) {
@@ -485,7 +490,32 @@
         { passive: true }
       );
 
-      // Initial layout sync
+      // 4. Mobile IntersectionObserver for Viewport-Based Card Activation
+      if ("IntersectionObserver" in window) {
+        const mobileObserver = new IntersectionObserver(
+          (entries) => {
+            if (window.innerWidth > 900) return; // Managed by scroll on desktop
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                const idx = parseInt(entry.target.getAttribute("data-index"), 10);
+                if (!isNaN(idx)) {
+                  selectCategory(idx, false);
+                }
+              }
+            });
+          },
+          {
+            root: null,
+            rootMargin: "-25% 0px -25% 0px",
+            threshold: 0.4
+          }
+        );
+
+        categoryCards.forEach((card) => mobileObserver.observe(card));
+      }
+
+      // Initial layout sync: Ensure Card 0 is active initially
+      selectCategory(0, false);
       handleScroll();
     });
   </script>

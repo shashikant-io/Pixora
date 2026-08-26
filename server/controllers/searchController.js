@@ -1,6 +1,5 @@
 const Photo = require("../models/Photo");
 const Event = require("../models/Event");
-const { uploadImage } = require("../services/imagekitService");
 const { findMatchingPhotos, processSelfieFace } = require("../services/faceService");
 
 async function searchByFace(req, res) {
@@ -20,7 +19,7 @@ async function searchByFace(req, res) {
 
     let guestEmbedding = null;
 
-    // Try Buffalo ONNX face extraction directly from image buffer
+    // Buffalo ONNX face extraction directly from image buffer in memory
     try {
       const selfieResult = await processSelfieFace(req.file.buffer);
       if (selfieResult && selfieResult.embedding) {
@@ -49,9 +48,6 @@ async function searchByFace(req, res) {
       return res.status(404).json({ success: false, message: "Event not found." });
     }
 
-    const folder = `wedding-photo-finder/events/${eventId}/guest-selfies`;
-    await uploadImage(req.file.buffer, req.file.originalname, folder);
-
     const threshold = parseFloat(process.env.FACE_MATCH_THRESHOLD) || 0.40;
     const allPhotos = await Photo.find({ eventId });
 
@@ -67,14 +63,32 @@ async function searchByFace(req, res) {
 
     res.json({
       success: true,
-      matches: matches.map((m) => ({
-        imageUrl: m.photo.imageUrl,
-        similarity: m.similarity !== undefined ? m.similarity : Number((1 - m.distance).toFixed(4)),
-        distance: m.distance,
-      })),
+      matches: matches.map((m) => {
+        const photo = m.photo;
+        const fileId = photo.fileId || photo.imageKitFileId || photo._id.toString();
+        const isRemote = photo.imageUrl && (photo.imageUrl.startsWith("http://") || photo.imageUrl.startsWith("https://"));
+
+        const imageUrl = isRemote ? photo.imageUrl : `/api/photos/file/${fileId}`;
+        const thumbnailUrl = isRemote
+          ? (photo.thumbnailUrl || `${photo.imageUrl}?tr=h-350,w-350,q-80,c-maintain_ratio`)
+          : `/api/photos/file/${fileId}?size=thumbnail`;
+        const downloadUrl = isRemote
+          ? (photo.downloadUrl || `${photo.imageUrl}?ik-attachment=true`)
+          : `/api/photos/download/${fileId}`;
+
+        return {
+          id: photo._id,
+          fileId,
+          imageUrl,
+          thumbnailUrl,
+          downloadUrl,
+          similarity: m.similarity !== undefined ? m.similarity : Number((1 - m.distance).toFixed(4)),
+          distance: m.distance,
+        };
+      }),
     });
   } catch (error) {
-    console.error(error);
+    console.error("Search by face error:", error);
     res.status(500).json({ success: false, message: "Search failed. Please try again." });
   }
 }

@@ -1,0 +1,10 @@
+{
+  "name": "wedding-photo-finder",
+  "version": "1.0.0",
+  "description": "AI-Powered Wedding & Event Photo Finder with 5TB Google Drive Storage",
+  "scripts": {
+    "start": "npm --prefix server start",
+    "dev": "npm --prefix server run dev",
+    "server": "npm --prefix server start"
+  }
+}

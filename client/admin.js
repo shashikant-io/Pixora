@@ -74,11 +74,11 @@ async function checkServerStatus() {
     const data = await response.json();
 
     if (data.success) {
-      statusEl.innerHTML = `${getIcon("checkCircle")} Server Online`;
-      statusEl.className = "message message-success";
+      statusEl.innerHTML = `${getIcon("checkCircle")} <span>Server Online</span>`;
+      statusEl.className = "message message-success header-status-badge";
 
       if (modelStatusEl) {
-        modelStatusEl.innerHTML = `${getIcon("checkCircle")} Buffalo ONNX AI Ready`;
+        modelStatusEl.innerHTML = `${getIcon("checkCircle")} <span>Buffalo ONNX AI Ready</span>`;
         modelStatusEl.className = "message message-success";
       }
 
@@ -90,10 +90,10 @@ async function checkServerStatus() {
     }
   } catch (error) {
     console.error("Could not reach backend:", error);
-    statusEl.innerHTML = `${getIcon("alertCircle")} Server Offline`;
-    statusEl.className = "message message-error";
+    statusEl.innerHTML = `${getIcon("alertCircle")} <span>Server Offline</span>`;
+    statusEl.className = "message message-error header-status-badge";
     if (modelStatusEl) {
-      modelStatusEl.innerHTML = `${getIcon("alertCircle")} AI Service Offline`;
+      modelStatusEl.innerHTML = `${getIcon("alertCircle")} <span>AI Service Offline</span>`;
       modelStatusEl.className = "message message-error";
     }
   }
@@ -122,7 +122,7 @@ function showToast(message, type = "success") {
 }
 
 // ==========================================================================
-// Storage Plan Component Controller (Live ImageKit)
+// Storage Plan Component Controller (Live ImageKit.io CDN)
 // ==========================================================================
 let currentStorageData = null;
 
@@ -186,7 +186,7 @@ async function loadStoragePlan(force = false) {
     const data = await response.json();
 
     if (!data.success) {
-      throw new Error(data.message || "Failed to load ImageKit storage information.");
+      throw new Error(data.message || "Failed to load Google Drive storage information.");
     }
 
     currentStorageData = data;
@@ -209,15 +209,21 @@ function renderStoragePlan(data) {
   if (!container) return;
 
   const percentage = data.storagePercentage !== undefined ? data.storagePercentage : 0;
-  const displayPercentage = Math.round(percentage);
+  const displayPercentage = percentage < 0.1 && percentage > 0 ? "< 0.1" : percentage.toFixed(1);
   const photoCount = data.photoCount !== undefined ? data.photoCount : 0;
-  const photoLimit = data.photoLimitEstimated || 1200;
+  const photoLimit = data.photoLimitEstimated || 1300000;
 
   const storageUsedDisplay =
-    data.storageUsedMB >= 1024
+    data.storageUsedGB >= 1
       ? `${data.storageUsedGB} GB`
-      : `${data.storageUsedMB} MB`;
-  const storageLimitDisplay = `${data.storageLimitGB || 3} GB`;
+      : `${data.storageUsedMB || 0} MB`;
+
+  const storageLimitDisplay =
+    data.storageLimitGB !== undefined
+      ? `${data.storageLimitGB} GB`
+      : data.storageLimitTB !== undefined
+      ? `${data.storageLimitTB} TB`
+      : "20 GB";
 
   let barClass = "";
   if (data.isFull || percentage >= 100) {
@@ -234,21 +240,21 @@ function renderStoragePlan(data) {
   container.innerHTML = `
     <div class="storage-card-header">
       <div class="storage-header-left">
-        <div class="storage-icon-badge" title="ImageKit Cloud Storage">
+        <div class="storage-icon-badge" title="ImageKit.io Media CDN">
           ${getIcon("camera")}
         </div>
-        <h2 class="storage-card-title">Storage Plan</h2>
+        <h2 class="storage-card-title">${data.planName || "ImageKit.io (20 GB Free Plan)"}</h2>
       </div>
-      <button type="button" class="storage-upgrade-btn" id="storage-upgrade-action" title="Upgrade ImageKit Plan">
+      <button type="button" class="storage-upgrade-btn" id="storage-upgrade-action" title="Open ImageKit Developer Dashboard">
         ${getIcon("sparkles")}
-        <span>Upgrade</span>
+        <span>ImageKit CDN</span>
       </button>
     </div>
 
     <div class="storage-stat-row">
       <div class="storage-percentage-val">${displayPercentage}%</div>
       <div class="storage-photos-desc">
-        <strong>${photoCount.toLocaleString()}</strong> of <strong>${photoLimit.toLocaleString()}</strong> photos used
+        <strong>${photoCount.toLocaleString()}</strong> photos uploaded (${data.storageRemainingGB ? data.storageRemainingGB + ' GB remaining' : '20 GB capacity'})
       </div>
       ${
         data.isFull
@@ -267,16 +273,11 @@ function renderStoragePlan(data) {
       <div class="storage-meta-badges">
         <span class="storage-live-pill">
           <span class="storage-live-dot"></span>
-          Live ImageKit Sync
+          Live ImageKit CDN Sync
         </span>
         <span class="storage-meta-item">
           Storage: <strong>${storageUsedDisplay}</strong> / ${storageLimitDisplay}
         </span>
-        ${
-          data.bandwidthUsedMB !== undefined
-            ? `<span class="storage-meta-item">Bandwidth: <strong>${data.bandwidthUsedMB >= 1024 ? data.bandwidthUsedGB + ' GB' : data.bandwidthUsedMB + ' MB'}</strong> / ${data.bandwidthLimitGB || 20} GB</span>`
-            : ""
-        }
       </div>
       <button type="button" class="storage-sync-btn" id="storage-sync-btn" title="Fetch live usage from ImageKit">
         ${getIcon("refresh")}
@@ -286,7 +287,7 @@ function renderStoragePlan(data) {
   `;
 
   document.getElementById("storage-upgrade-action")?.addEventListener("click", () => {
-    window.open(data.upgradeUrl || "https://imagekit.io/plans", "_blank", "noopener,noreferrer");
+    window.open(data.upgradeUrl || "https://imagekit.io/dashboard/developer", "_blank", "noopener,noreferrer");
   });
 
   document.getElementById("storage-sync-btn")?.addEventListener("click", () => {
@@ -300,7 +301,7 @@ function renderStorageError(errorMessage) {
 
   container.innerHTML = `
     <div style="text-align: center; padding: 1.5rem 1rem;">
-      <p style="color: var(--accent-danger); font-weight: 600; margin-bottom: 0.25rem;">Unable to load live ImageKit storage metrics</p>
+      <p style="color: var(--accent-danger); font-weight: 600; margin-bottom: 0.25rem;">Unable to load Google Drive storage metrics</p>
       <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">${errorMessage || "Check network connection."}</p>
       <button type="button" class="btn btn-secondary btn-sm" id="storage-retry-btn">
         ${getIcon("refresh")}
@@ -362,7 +363,7 @@ function addFilesToQueue(newFiles) {
   // Filter for valid images
   const imageFiles = newFiles.filter((f) => f.type.startsWith("image/"));
   if (imageFiles.length === 0) {
-    showToast("Please select valid image files.", "error");
+    showToast("Please select valid image files (JPG, PNG, WEBP).", "error");
     return;
   }
 
@@ -372,6 +373,8 @@ function addFilesToQueue(newFiles) {
       (f) => f.name === newFile.name && f.size === newFile.size
     );
     if (!exists) {
+      // Create thumbnail object URL for Aceternity preview
+      newFile._previewUrl = URL.createObjectURL(newFile);
       selectedUploadFiles.push(newFile);
     }
   });
@@ -381,12 +384,18 @@ function addFilesToQueue(newFiles) {
 }
 
 function removeFileFromQueue(index) {
+  if (selectedUploadFiles[index] && selectedUploadFiles[index]._previewUrl) {
+    URL.revokeObjectURL(selectedUploadFiles[index]._previewUrl);
+  }
   selectedUploadFiles.splice(index, 1);
   renderSelectedFilesPreview();
   updateUploadButtonState();
 }
 
 function clearSelectedFiles() {
+  selectedUploadFiles.forEach((f) => {
+    if (f._previewUrl) URL.revokeObjectURL(f._previewUrl);
+  });
   selectedUploadFiles = [];
   const fileInput = document.getElementById("photo-input");
   if (fileInput) fileInput.value = "";
@@ -415,31 +424,39 @@ function renderSelectedFilesPreview() {
   }
 
   cardEl.classList.remove("hidden");
-  countEl.textContent = `${selectedUploadFiles.length} photo${selectedUploadFiles.length === 1 ? "" : "s"} ready for upload`;
+  countEl.textContent = `${selectedUploadFiles.length} photo${selectedUploadFiles.length === 1 ? "" : "s"}`;
 
   listEl.innerHTML = "";
   selectedUploadFiles.forEach((file, index) => {
-    const chip = document.createElement("div");
-    chip.className = "selected-file-chip";
-    chip.innerHTML = `
-      <div class="selected-file-name" title="${file.name}">
-        ${getIcon("images")}
-        <span>${file.name}</span>
+    const item = document.createElement("div");
+    item.className = "aceternity-file-item";
+    
+    const fileType = file.type ? file.type.replace("image/", "").toUpperCase() : "IMAGE";
+    const previewSrc = file._previewUrl || "";
+
+    item.innerHTML = `
+      <div class="aceternity-file-item-left">
+        <img src="${previewSrc}" alt="${file.name}" class="aceternity-file-thumbnail" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'24\\' height=\\'24\\' fill=\\'none\\' stroke=\\'%237C5CFF\\' stroke-width=\\'2\\'%3E%3Crect width=\\'18\\' height=\\'18\\' x=\\'3\\' y=\\'3\\' rx=\\'2\\'/%3E%3C/svg%3E'" />
+        <div class="aceternity-file-meta">
+          <span class="aceternity-file-name" title="${file.name}">${file.name}</span>
+          <div class="aceternity-file-details">
+            <span>${formatFileSize(file.size)}</span>
+            <span>&bull;</span>
+            <span style="text-transform: uppercase;">${fileType}</span>
+          </div>
+        </div>
       </div>
-      <div style="display: flex; align-items: center; gap: 0.5rem;">
-        <span class="selected-file-size">${formatFileSize(file.size)}</span>
-        <button type="button" class="btn btn-ghost" style="height: 20px; width: 20px; padding: 0;" data-index="${index}" title="Remove file">
-          ${getIcon("x")}
-        </button>
-      </div>
+      <button type="button" class="aceternity-file-remove-btn" data-index="${index}" title="Remove photo">
+        ${getIcon("x")}
+      </button>
     `;
 
-    chip.querySelector("button")?.addEventListener("click", (e) => {
+    item.querySelector(".aceternity-file-remove-btn")?.addEventListener("click", (e) => {
       e.stopPropagation();
       removeFileFromQueue(index);
     });
 
-    listEl.appendChild(chip);
+    listEl.appendChild(item);
   });
 }
 
@@ -456,8 +473,93 @@ function updateUploadButtonState() {
 }
 
 // ==========================================================================
-// Photo Upload Execution
+// Photo Upload Execution (Controlled Concurrency Queue & Retry Engine)
 // ==========================================================================
+const UPLOAD_CONCURRENCY_LIMIT = 3;
+const MAX_UPLOAD_RETRIES = 2;
+
+async function uploadSinglePhotoWithRetry(file, eventId, statusEl, onStageChange) {
+  let attempt = 0;
+  let lastError = null;
+
+  while (attempt <= MAX_UPLOAD_RETRIES) {
+    attempt++;
+    try {
+      if (attempt > 1) {
+        statusEl.className = "upload-item-status retrying";
+        statusEl.innerHTML = `${getIcon("spinner")} <span>Retrying (${attempt - 1}/${MAX_UPLOAD_RETRIES})&hellip;</span>`;
+        // Exponential backoff: 1s, 2s
+        await new Promise((resolve) => setTimeout(resolve, (attempt - 1) * 1000));
+      }
+
+      statusEl.className = "upload-item-status running";
+      statusEl.innerHTML = `${getIcon("spinner")} <span>Uploading&hellip;</span>`;
+
+      const formData = new FormData();
+      formData.append("photo", file);
+      formData.append("eventId", eventId);
+
+      // Transition to AI indexing indicator
+      const indexingTimer = setTimeout(() => {
+        statusEl.innerHTML = `${getIcon("spinner")} <span>Buffalo AI indexing&hellip;</span>`;
+      }, 600);
+
+      const response = await fetch(`${API_BASE_URL}/photos/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      clearTimeout(indexingTimer);
+
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (parseErr) {
+        throw new Error(`Server returned invalid response (HTTP ${response.status})`);
+      }
+
+      if (!response.ok || !data.success) {
+        const errorMsg = (data && data.message) || `Upload failed (HTTP ${response.status})`;
+        // Do not retry 4xx client validation errors
+        if (response.status >= 400 && response.status < 500 && response.status !== 408) {
+          const nonRetryErr = new Error(errorMsg);
+          nonRetryErr.isNonRetryable = true;
+          throw nonRetryErr;
+        }
+        throw new Error(errorMsg);
+      }
+
+      const faceCount = data.photo && data.photo.faceCount !== undefined ? data.photo.faceCount : 0;
+      statusEl.className = "upload-item-status success";
+      if (faceCount > 0) {
+        statusEl.innerHTML = `${getIcon("checkCircle")} <span>Indexed (${faceCount} face${faceCount === 1 ? "" : "s"})</span>`;
+      } else {
+        statusEl.innerHTML = `${getIcon("checkCircle")} <span>Indexed (0 faces detected)</span>`;
+      }
+
+      return { success: true, file, data };
+    } catch (err) {
+      lastError = err;
+      console.warn(`Upload attempt ${attempt} for "${file.name}" failed:`, err.message);
+
+      if (err.isNonRetryable || attempt > MAX_UPLOAD_RETRIES) {
+        break;
+      }
+    }
+  }
+
+  // Format clean, human-readable error message
+  let displayErrMsg = lastError ? lastError.message : "Upload failed";
+  if (displayErrMsg === "Failed to fetch") {
+    displayErrMsg = "Connection timeout / Server unreachable";
+  }
+
+  statusEl.className = "upload-item-status error";
+  statusEl.innerHTML = `${getIcon("alertCircle")} <span title="${displayErrMsg}">${displayErrMsg}</span>`;
+
+  return { success: false, file, error: lastError };
+}
+
 async function handleUploadPhotos() {
   const eventId = document.getElementById("upload-event-select").value;
   const filesToUpload = [...selectedUploadFiles];
@@ -472,21 +574,32 @@ async function handleUploadPhotos() {
   const logEl = document.getElementById("upload-log");
 
   uploadBtn.disabled = true;
+  uploadBtn.innerHTML = `${getIcon("spinner")} <span>Processing queue...</span>`;
   queueContainer.classList.remove("hidden");
   logEl.innerHTML = "";
 
   let succeeded = 0;
   let failed = 0;
+  let processedCount = 0;
+  const totalCount = filesToUpload.length;
 
-  // Build queue items
+  const updateProgress = () => {
+    const percent = Math.round((processedCount / totalCount) * 100);
+    progressFillEl.style.width = `${percent}%`;
+    summaryPercentEl.textContent = `${percent}%`;
+    summaryTextEl.textContent = `Processed ${processedCount} of ${totalCount} photos (${succeeded} succeeded, ${failed} failed)`;
+  };
+
+  // Build queue items with real preview thumbnails
   const itemElements = filesToUpload.map((file) => {
     const itemCard = document.createElement("div");
     itemCard.className = "upload-item-card";
+    const previewSrc = file._previewUrl || "";
     itemCard.innerHTML = `
       <div class="upload-item-info">
-        ${getIcon("images")}
+        <img src="${previewSrc}" alt="${file.name}" style="width: 28px; height: 28px; border-radius: 4px; object-fit: cover; flex-shrink: 0;" onerror="this.style.display='none'" />
         <span class="upload-item-name" title="${file.name}">${file.name}</span>
-        <span style="font-size: 0.75rem; color: var(--text-muted);">${formatFileSize(file.size)}</span>
+        <span class="upload-item-size">${formatFileSize(file.size)}</span>
       </div>
       <div class="upload-item-status running">
         ${getIcon("spinner")}
@@ -497,51 +610,56 @@ async function handleUploadPhotos() {
     return itemCard;
   });
 
-  for (let i = 0; i < filesToUpload.length; i++) {
-    const file = filesToUpload[i];
-    const itemEl = itemElements[i];
-    const statusEl = itemEl.querySelector(".upload-item-status");
+  updateProgress();
 
-    statusEl.className = "upload-item-status running";
-    statusEl.innerHTML = `${getIcon("spinner")} <span>Buffalo AI indexing…</span>`;
+  // Controlled Concurrency Worker Pool
+  let nextQueueIndex = 0;
 
-    try {
-      const formData = new FormData();
-      formData.append("photo", file);
-      formData.append("eventId", eventId);
+  async function worker() {
+    while (nextQueueIndex < totalCount) {
+      const currentIndex = nextQueueIndex++;
+      const file = filesToUpload[currentIndex];
+      const itemEl = itemElements[currentIndex];
+      const statusEl = itemEl.querySelector(".upload-item-status");
 
-      const response = await fetch(`${API_BASE_URL}/photos/upload`, {
-        method: "POST",
-        body: formData,
-      });
-      const data = await response.json();
+      const result = await uploadSinglePhotoWithRetry(file, eventId, statusEl);
 
-      if (!data.success) throw new Error(data.message || "Upload failed.");
-
-      const faceCount = data.photo && data.photo.faceCount !== undefined ? data.photo.faceCount : 0;
-      statusEl.className = "upload-item-status success";
-      statusEl.innerHTML = `${getIcon("checkCircle")} <span>Indexed (${faceCount} face${faceCount === 1 ? "" : "s"})</span>`;
-      succeeded++;
-    } catch (error) {
-      console.error(`Failed to process ${file.name}:`, error);
-      statusEl.className = "upload-item-status error";
-      statusEl.innerHTML = `${getIcon("alertCircle")} <span>${error.message}</span>`;
-      failed++;
+      if (result.success) {
+        succeeded++;
+      } else {
+        failed++;
+      }
+      processedCount++;
+      updateProgress();
     }
-
-    const percent = Math.round(((i + 1) / filesToUpload.length) * 100);
-    progressFillEl.style.width = `${percent}%`;
-    summaryPercentEl.textContent = `${percent}%`;
-    summaryTextEl.textContent = `Processed ${i + 1} of ${filesToUpload.length} photos (${succeeded} succeeded, ${failed} failed)`;
   }
 
+  // Spawn concurrency worker pool
+  const workerCount = Math.min(UPLOAD_CONCURRENCY_LIMIT, totalCount);
+  const workerPromises = [];
+  for (let w = 0; w < workerCount; w++) {
+    workerPromises.push(worker());
+  }
+
+  await Promise.all(workerPromises);
+
   uploadBtn.disabled = false;
+  uploadBtn.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" x2="12" y1="3" y2="15"/>
+    </svg>
+    <span>Upload Photos</span>
+  `;
   clearSelectedFiles();
 
   if (succeeded > 0) {
-    showToast(`Successfully uploaded ${succeeded} photo${succeeded === 1 ? "" : "s"}!`);
+    showToast(`Upload complete: ${succeeded} photos indexed successfully${failed > 0 ? ` (${failed} failed)` : ""}!`);
     loadStoragePlan(true);
     loadEvents();
+  } else if (failed > 0) {
+    showToast(`Upload failed for all ${failed} photos. Check the error log above.`, "error");
   }
 }
 
@@ -770,7 +888,7 @@ function openDeleteModal(eventId, eventName) {
 
   if (!modal || !messageEl || !confirmBtn) return;
 
-  messageEl.innerHTML = `Are you sure you want to permanently delete event <strong>"${eventName}"</strong> (<code>${eventId}</code>)?<br/><br/>All uploaded photos will be removed from ImageKit cloud storage and freed from your storage quota.`;
+  messageEl.innerHTML = `Are you sure you want to permanently delete event <strong>"${eventName}"</strong> (<code>${eventId}</code>)?<br/><br/>All uploaded photos will be removed from Google Drive cloud storage and freed from your storage quota.`;
 
   confirmBtn.disabled = false;
   confirmBtn.innerHTML = `${getIcon("trash")} <span>Delete Event</span>`;

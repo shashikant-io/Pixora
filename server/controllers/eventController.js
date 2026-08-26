@@ -1,7 +1,11 @@
 const Event = require("../models/Event");
 const Photo = require("../models/Photo");
 const generateEventId = require("../utils/generateId");
-const { bulkDeleteImages, deleteFolder, invalidateStorageUsageCache } = require("../services/imagekitService");
+const {
+  bulkDeleteImages,
+  deleteFolder,
+  invalidateStorageUsageCache,
+} = require("../services/imagekitService");
 
 async function createEvent(req, res) {
   try {
@@ -28,7 +32,7 @@ async function createEvent(req, res) {
       event: newEvent,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Create event error:", error);
     res.status(500).json({
       success: false,
       message: "Could not create event.",
@@ -58,7 +62,7 @@ async function getEvent(req, res) {
       },
     });
   } catch (error) {
-    console.error(error);
+    console.error("Get event error:", error);
     res.status(500).json({
       success: false,
       message: "Could not fetch event.",
@@ -95,7 +99,7 @@ async function listEvents(req, res) {
       events: enrichedEvents,
     });
   } catch (error) {
-    console.error(error);
+    console.error("List events error:", error);
     res.status(500).json({
       success: false,
       message: "Could not fetch events.",
@@ -117,15 +121,17 @@ async function deleteEvent(req, res) {
 
     // 1. Find all photos belonging to this event
     const photos = await Photo.find({ eventId });
-    const fileIds = photos.map((p) => p.imageKitFileId).filter(Boolean);
+    const fileIds = photos
+      .map((p) => p.fileId || p.imageKitFileId)
+      .filter(Boolean);
 
-    // 2. Delete all photos from ImageKit
+    // 2. Delete all photos from Google Drive
     if (fileIds.length > 0) {
       await bulkDeleteImages(fileIds);
     }
 
-    // 3. Delete the folder from ImageKit
-    await deleteFolder(`wedding-photo-finder/events/${eventId}`);
+    // 3. Delete the event folder from Google Drive
+    await deleteFolder(eventId);
 
     // 4. Delete photo records from MongoDB
     await Photo.deleteMany({ eventId });
@@ -153,4 +159,3 @@ async function deleteEvent(req, res) {
 }
 
 module.exports = { createEvent, getEvent, listEvents, deleteEvent };
-

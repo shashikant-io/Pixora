@@ -64,12 +64,21 @@ function invertSimilarityMatrix(mat) {
 /**
  * Aligns and crops face to 112x112 standard buffer using bilinear interpolation.
  */
-async function alignFaceCrop(imageBuffer, landmarks, targetW = 112, targetH = 112) {
-  const metadata = await sharp(imageBuffer).metadata();
-  const rawImage = await sharp(imageBuffer).raw().toBuffer();
-  const imgW = metadata.width;
-  const imgH = metadata.height;
-  const channels = metadata.channels || 3;
+async function alignFaceCrop(imageBuffer, landmarks, targetW = 112, targetH = 112, preDecoded = null) {
+  let rawImage, imgW, imgH, channels;
+
+  if (preDecoded) {
+    rawImage = preDecoded.rawImage;
+    imgW = preDecoded.imgW;
+    imgH = preDecoded.imgH;
+    channels = preDecoded.channels;
+  } else {
+    const metadata = await sharp(imageBuffer).metadata();
+    rawImage = await sharp(imageBuffer).raw().toBuffer();
+    imgW = metadata.width;
+    imgH = metadata.height;
+    channels = metadata.channels || 3;
+  }
 
   const mat = estimateSimilarityTransform(landmarks, ARCFACE_REF_PTS);
   const invMat = invertSimilarityMatrix(mat);
@@ -119,13 +128,14 @@ async function alignFaceCrop(imageBuffer, landmarks, targetW = 112, targetH = 11
  * Generates normalized 512-dim ArcFace embedding using w600k_r50.onnx.
  * @param {Buffer} imageBuffer - Source image buffer
  * @param {Array<[number, number]>} landmarks - 5 facial landmarks
+ * @param {Object} [preDecoded=null] - Optional pre-decoded raw image buffer
  * @returns {Promise<Array<number>>} 512-dimensional normalized embedding
  */
-async function generateEmbedding(imageBuffer, landmarks) {
+async function generateEmbedding(imageBuffer, landmarks, preDecoded = null) {
   await initModels();
   const { embed } = getSessions();
 
-  const alignedBuf = await alignFaceCrop(imageBuffer, landmarks, 112, 112);
+  const alignedBuf = await alignFaceCrop(imageBuffer, landmarks, 112, 112, preDecoded);
 
   // Planar NCHW float32: (pixel - 127.5) / 127.5
   const planar = new Float32Array(3 * 112 * 112);
