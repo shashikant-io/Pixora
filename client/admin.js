@@ -43,9 +43,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   checkServerStatus();
   initStoragePlanCard();
   loadEvents();
+  loadUserActivity();
   setupAdminUploadControls();
   setupModalHandlers();
   setupLogoutHandler();
+  setupUserSearch();
+
 
   document.getElementById("create-event-form").addEventListener("submit", handleCreateEvent);
   document.getElementById("upload-btn").addEventListener("click", handleUploadPhotos);
@@ -1181,4 +1184,145 @@ async function executeEventDeletion() {
     }
   }
 }
+
+// ==========================================================================
+// User Logins & Access Activity Management
+// ==========================================================================
+let loadedUsers = [];
+
+function formatRelativeTime(dateString) {
+  if (!dateString) return "Recently";
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffSec = Math.floor((now - date) / 1000);
+
+  if (diffSec < 45) return "Just now";
+  if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+  if (diffSec < 172800) return "Yesterday";
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+async function loadUserActivity() {
+  const container = document.getElementById("users-activity-list");
+  const refreshBtn = document.getElementById("refresh-users-btn");
+
+  if (refreshBtn) {
+    refreshBtn.disabled = true;
+    refreshBtn.innerHTML = `${getIcon("spinner")} <span>Refreshing…</span>`;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin/users`, {
+      headers: getAdminAuthHeaders(),
+    });
+    const data = await res.json();
+
+    if (data.success && Array.isArray(data.users)) {
+      loadedUsers = data.users;
+
+      // Update Stats
+      const statTotal = document.getElementById("stat-total-users");
+      const statGuest = document.getElementById("stat-guest-users");
+      const statActive = document.getElementById("stat-active-users");
+
+      if (statTotal) statTotal.textContent = data.stats?.totalUsers || loadedUsers.length;
+      if (statGuest) statGuest.textContent = data.stats?.totalCustomers || 0;
+      if (statActive) statActive.textContent = data.stats?.activeLast24h || 0;
+
+      renderUsersList(loadedUsers);
+    } else {
+      if (container) {
+        container.innerHTML = `<div class="message message-error" style="grid-column: 1 / -1;">${getIcon("alertCircle")} Could not load user activity.</div>`;
+      }
+    }
+  } catch (err) {
+    console.error("Error loading user activity:", err);
+    if (container) {
+      container.innerHTML = `<div class="message message-error" style="grid-column: 1 / -1;">${getIcon("alertCircle")} Network error loading user activity.</div>`;
+    }
+  } finally {
+    if (refreshBtn) {
+      refreshBtn.disabled = false;
+      refreshBtn.innerHTML = `${getIcon("refresh")} <span>Refresh</span>`;
+    }
+  }
+}
+
+function renderUsersList(users) {
+  const container = document.getElementById("users-activity-list");
+  if (!container) return;
+
+  if (!users || users.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+        <p style="margin: 0; font-size: 0.9rem;">No user logins found matching your filter.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = users.map((u) => {
+    const isAdmin = u.role === "admin";
+    const initial = (u.name || u.email || "U").charAt(0).toUpperCase();
+    const roleClass = isAdmin ? "admin" : "guest";
+    const roleLabel = isAdmin ? "Photographer Admin" : "Guest / Customer";
+    const timeAgo = formatRelativeTime(u.lastLoginAt);
+    const fullDate = u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : "";
+    const displayName = u.name || (isAdmin ? "Photographer Admin" : "Guest User");
+
+    const avatarHtml = u.picture
+      ? `<img class="activity-avatar-img" src="${u.picture}" alt="${displayName}" onerror="this.outerHTML='<div class=\\'activity-avatar-initials ${isAdmin ? "activity-avatar-admin" : ""}\\'>${initial}</div>'" />`
+      : `<div class="activity-avatar-initials ${isAdmin ? "activity-avatar-admin" : ""}">${initial}</div>`;
+
+    return `
+      <div class="activity-row">
+        <div class="activity-col-user">
+          ${avatarHtml}
+          <div class="activity-user-details">
+            <div class="activity-name-row">
+              <span class="activity-user-name" title="${displayName}">${displayName}</span>
+            </div>
+            <div class="activity-user-email" title="${u.email}">${u.email}</div>
+          </div>
+        </div>
+
+        <div class="activity-col-role">
+          <span class="activity-role-pill ${roleClass}">${roleLabel}</span>
+        </div>
+
+        <div class="activity-col-time" title="${fullDate}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span>Active: <strong>${timeAgo}</strong></span>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+
+function setupUserSearch() {
+  const searchInput = document.getElementById("user-search-input");
+  const refreshBtn = document.getElementById("refresh-users-btn");
+
+  searchInput?.addEventListener("input", (e) => {
+    const q = (e.target.value || "").trim().toLowerCase();
+    if (!q) {
+      renderUsersList(loadedUsers);
+      return;
+    }
+    const filtered = loadedUsers.filter(
+      (u) =>
+        (u.name && u.name.toLowerCase().includes(q)) ||
+        (u.email && u.email.toLowerCase().includes(q)) ||
+        (u.role && u.role.toLowerCase().includes(q))
+    );
+    renderUsersList(filtered);
+  });
+
+  refreshBtn?.addEventListener("click", () => {
+    loadUserActivity();
+  });
+}
+
 

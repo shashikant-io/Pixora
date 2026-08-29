@@ -71,6 +71,51 @@ async function getStorageStats(req, res) {
   }
 }
 
+const User = require("../models/User");
+
+async function getUsersActivity(req, res) {
+  try {
+    const users = await User.find().sort({ lastLoginAt: -1, createdAt: -1 }).lean();
+
+    const totalUsers = users.length;
+    const totalCustomers = users.filter((u) => u.role === "customer").length;
+    const totalAdmins = users.filter((u) => u.role === "admin").length;
+
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const activeLast24h = users.filter(
+      (u) => (u.lastLoginAt && new Date(u.lastLoginAt) >= oneDayAgo) || (u.createdAt && new Date(u.createdAt) >= oneDayAgo)
+    ).length;
+
+    res.json({
+      success: true,
+      stats: {
+        totalUsers,
+        totalCustomers,
+        totalAdmins,
+        activeLast24h,
+      },
+      users: users.map((u) => ({
+        id: u._id,
+        email: u.email,
+        name: u.name || (u.role === "admin" ? "Photographer Admin" : "Guest User"),
+        role: u.role,
+        picture: u.picture || null,
+        lastLoginAt: u.lastLoginAt || u.createdAt,
+        createdAt: u.createdAt,
+      })),
+    });
+  } catch (error) {
+    console.error("Error fetching user activity:", error);
+    res.status(500).json({
+      success: false,
+      message: "Could not fetch user activity.",
+      error: error.message,
+    });
+  }
+}
+
 module.exports = {
   getStorageStats,
+  getUsersActivity,
 };
+

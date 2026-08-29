@@ -1,3 +1,4 @@
+const sharp = require("sharp");
 const { initModels, getSessions, isLoaded } = require("./modelLoader");
 const { detectFaces } = require("./detector");
 const { generateEmbedding, getLandmarks2D } = require("./embedder");
@@ -16,7 +17,8 @@ async function initFaceRecognition(modelsDir) {
  * @returns {Promise<Array<{embedding: Array<number>, boundingBox: Object, score: number, landmarks: Array}>>}
  */
 async function processPhotoFaces(imageBuffer) {
-  const detections = await detectFaces(imageBuffer);
+  const normalizedBuffer = await sharp(imageBuffer).rotate().toBuffer();
+  const detections = await detectFaces(normalizedBuffer);
   const faces = [];
 
   if (!detections || detections.length === 0) {
@@ -26,9 +28,9 @@ async function processPhotoFaces(imageBuffer) {
   // Pre-decode full raw image buffer once for all detected faces in this photo
   let preDecoded = null;
   try {
-    const sharpInstance = sharp(imageBuffer);
+    const sharpInstance = sharp(normalizedBuffer);
     const metadata = await sharpInstance.metadata();
-    const rawImage = await sharp(imageBuffer).raw().toBuffer();
+    const rawImage = await sharpInstance.raw().toBuffer();
     preDecoded = {
       rawImage,
       imgW: metadata.width,
@@ -39,9 +41,10 @@ async function processPhotoFaces(imageBuffer) {
     console.warn("Raw image pre-decode notice:", decodeErr.message);
   }
 
+
   for (const det of detections) {
     try {
-      const embedding = await generateEmbedding(imageBuffer, det.landmarks, preDecoded);
+      const embedding = await generateEmbedding(normalizedBuffer, det.landmarks, preDecoded);
       faces.push({
         embedding,
         boundingBox: det.boundingBox,
@@ -62,7 +65,8 @@ async function processPhotoFaces(imageBuffer) {
  * @returns {Promise<{embedding: Array<number>, boundingBox: Object, score: number, faceCount: number}>}
  */
 async function processSelfieFace(imageBuffer) {
-  const detections = await detectFaces(imageBuffer);
+  const normalizedBuffer = await sharp(imageBuffer).rotate().toBuffer();
+  const detections = await detectFaces(normalizedBuffer);
 
   if (detections.length === 0) {
     throw new Error("No face detected. Please upload a clear selfie showing your face.");
@@ -72,7 +76,7 @@ async function processSelfieFace(imageBuffer) {
   detections.sort((a, b) => (b.boundingBox.width * b.boundingBox.height) - (a.boundingBox.width * a.boundingBox.height));
   const primaryFace = detections[0];
 
-  const embedding = await generateEmbedding(imageBuffer, primaryFace.landmarks);
+  const embedding = await generateEmbedding(normalizedBuffer, primaryFace.landmarks);
 
   return {
     embedding,
@@ -81,6 +85,7 @@ async function processSelfieFace(imageBuffer) {
     faceCount: detections.length
   };
 }
+
 
 module.exports = {
   initFaceRecognition,

@@ -27,16 +27,23 @@ async function searchByFace(req, res) {
       }
     }
 
-    let guestEmbedding = null;
-
+    console.log("[SearchByFace] Received search request:", {
+      eventId,
+      fileSize: req.file ? `${(req.file.size / 1024).toFixed(1)} KB` : "none",
+      mimeType: req.file?.mimetype,
+      originalName: req.file?.originalname,
+      modelsLoaded: isLoaded(),
+    });
 
     // Buffalo ONNX face extraction directly from image buffer in memory
     try {
       const selfieResult = await processSelfieFace(req.file.buffer);
       if (selfieResult && selfieResult.embedding) {
         guestEmbedding = selfieResult.embedding;
+        console.log("[SearchByFace] Face detected successfully. Confidence:", selfieResult.score, "Face count:", selfieResult.faceCount);
       }
     } catch (faceErr) {
+      console.warn("[SearchByFace] Buffalo ONNX face detection notice:", faceErr.message);
       // If server detection couldn't find face, check client provided embedding
       if (embedding) {
         try {
@@ -46,6 +53,7 @@ async function searchByFace(req, res) {
         }
       }
     }
+
 
     if (!Array.isArray(guestEmbedding) || guestEmbedding.length === 0) {
       return res.status(400).json({

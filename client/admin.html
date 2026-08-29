@@ -253,8 +253,69 @@
             <div class="message message-info" style="grid-column: 1 / -1;">Loading events&hellip;</div>
           </div>
         </section>
+
+        <!-- User Logins & Access Activity Section -->
+        <section class="card user-activity-panel" id="user-activity-card">
+          <div class="card-header-row" style="flex-wrap: wrap; gap: 1rem;">
+            <div class="card-title-group">
+              <div class="card-icon-pill" style="background: rgba(168, 85, 247, 0.12); color: #c084fc;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </div>
+              <div>
+                <h2>Login & Access Activity</h2>
+                <p style="font-size: 0.85rem; margin-top: 0.15rem; color: var(--text-muted);">
+                  Live list of all guests and photographers who have logged in or scanned QR codes.
+                </p>
+              </div>
+            </div>
+
+            <!-- Stats & Refresh Controls -->
+            <div class="activity-top-controls">
+              <div class="activity-kpi-chips">
+                <div class="kpi-chip">
+                  <span class="kpi-chip-label">Total Users</span>
+                  <span class="kpi-chip-val" id="stat-total-users">0</span>
+                </div>
+                <div class="kpi-chip kpi-chip-guest">
+                  <span class="kpi-chip-label">Guests</span>
+                  <span class="kpi-chip-val" id="stat-guest-users">0</span>
+                </div>
+                <div class="kpi-chip kpi-chip-active">
+                  <span class="kpi-chip-label">Active 24h</span>
+                  <span class="kpi-chip-val" id="stat-active-users">0</span>
+                </div>
+              </div>
+              <button type="button" id="refresh-users-btn" class="btn btn-secondary btn-sm" title="Refresh Users Activity">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                <span>Refresh</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- User Search Input -->
+          <div class="activity-filter-bar">
+            <div class="activity-search-wrapper">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="activity-search-icon"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="text" id="user-search-input" placeholder="Search by name, email, or role..." />
+            </div>
+          </div>
+
+          <!-- Users List Container -->
+          <div class="activity-list-container">
+            <div id="users-activity-list" class="activity-list-table">
+              <div class="message message-info" style="margin: 1rem;">Loading user activity&hellip;</div>
+            </div>
+          </div>
+        </section>
+
       </div>
     </main>
+
 
     <!-- QR Code Modal Component -->
     <div id="qr-display-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">

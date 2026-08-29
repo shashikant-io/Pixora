@@ -26,7 +26,9 @@ async function detectFaces(imageBuffer, options = {}) {
   const confThreshold = options.confThreshold !== undefined ? options.confThreshold : 0.5;
   const iouThreshold = options.iouThreshold !== undefined ? options.iouThreshold : 0.4;
 
-  const metadata = await sharp(imageBuffer).metadata();
+  // Auto-orient EXIF metadata to ensure smartphone/mobile portrait photos are upright
+  const normalizedBuffer = await sharp(imageBuffer).rotate().toBuffer();
+  const metadata = await sharp(normalizedBuffer).metadata();
   const origW = metadata.width;
   const origH = metadata.height;
 
@@ -39,11 +41,12 @@ async function detectFaces(imageBuffer, options = {}) {
   const resizedW = Math.round(origW * scale);
   const resizedH = Math.round(origH * scale);
 
-  const resizedRaw = await sharp(imageBuffer)
+  const resizedRaw = await sharp(normalizedBuffer)
     .resize(resizedW, resizedH)
     .ensureAlpha()
     .raw()
     .toBuffer();
+
 
   // Create planar float32 NCHW tensor: (pixel - 127.5) / 128.0
   const inputData = new Float32Array(3 * DET_HEIGHT * DET_WIDTH);

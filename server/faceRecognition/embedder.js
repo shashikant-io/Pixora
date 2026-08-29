@@ -73,12 +73,14 @@ async function alignFaceCrop(imageBuffer, landmarks, targetW = 112, targetH = 11
     imgH = preDecoded.imgH;
     channels = preDecoded.channels;
   } else {
-    const metadata = await sharp(imageBuffer).metadata();
-    rawImage = await sharp(imageBuffer).raw().toBuffer();
+    const normalizedBuffer = await sharp(imageBuffer).rotate().toBuffer();
+    const metadata = await sharp(normalizedBuffer).metadata();
+    rawImage = await sharp(normalizedBuffer).raw().toBuffer();
     imgW = metadata.width;
     imgH = metadata.height;
     channels = metadata.channels || 3;
   }
+
 
   const mat = estimateSimilarityTransform(landmarks, ARCFACE_REF_PTS);
   const invMat = invertSimilarityMatrix(mat);

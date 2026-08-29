@@ -479,6 +479,139 @@ function retakeSelfieFromScanner() {
   }
 }
 
+/**
+ * Normalizes uploaded image/selfie for mobile & desktop:
+ * - Auto-orients EXIF
+ * - Normalizes HEIC/HEIF or unsupported camera formats to standard high-quality JPEG
+ * - Caps maximum dimension to 1920px (preventing 40MB mobile camera memory issues & Vercel 4.5MB payload limits)
+ * - Outputs complete diagnostic telemetry
+ */
+async function prepareSelfieForUpload(file) {
+  console.group("[Selfie Diagnostic Telemetry]");
+  console.log("Input File:", {
+    name: file.name,
+    type: file.type,
+    size: `${(file.size / 1024).toFixed(1)} KB`,
+    devicePixelRatio: window.devicePixelRatio,
+    isMobile: /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent),
+    userAgent: navigator.userAgent
+  });
+
+  return new Promise((resolve) => {
+    if ("createImageBitmap" in window) {
+      createImageBitmap(file, { imageOrientation: "from-image" })
+        .then((bitmap) => {
+          const MAX_DIM = 1920;
+          let w = bitmap.width;
+          let h = bitmap.height;
+
+          console.log("ImageBitmap decoded:", { width: w, height: h });
+
+          if (w > MAX_DIM || h > MAX_DIM) {
+            if (w > h) {
+              h = Math.round((h * MAX_DIM) / w);
+              w = MAX_DIM;
+            } else {
+              w = Math.round((w * MAX_DIM) / h);
+              h = MAX_DIM;
+            }
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d", { willReadFrequently: true });
+          ctx.drawImage(bitmap, 0, 0, w, h);
+
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                console.log("Normalized JPEG Output:", {
+                  canvasWidth: w,
+                  canvasHeight: h,
+                  outputSize: `${(blob.size / 1024).toFixed(1)} KB`,
+                  outputType: blob.type
+                });
+                console.groupEnd();
+                const normalizedFile = new File([blob], file.name ? file.name.replace(/\.[^/.]+$/, ".jpg") : "selfie.jpg", {
+                  type: "image/jpeg",
+                  lastModified: Date.now(),
+                });
+                resolve(normalizedFile);
+              } else {
+                console.warn("Canvas toBlob yielded null, falling back to original file");
+                console.groupEnd();
+                resolve(file);
+              }
+            },
+            "image/jpeg",
+            0.92
+          );
+        })
+        .catch((err) => {
+          console.warn("createImageBitmap fallback to HTMLImageElement:", err.message);
+          fallbackImgProcessing(file, resolve);
+        });
+    } else {
+      fallbackImgProcessing(file, resolve);
+    }
+  });
+}
+
+function fallbackImgProcessing(file, resolve) {
+  const img = new Image();
+  const url = URL.createObjectURL(file);
+  img.onload = () => {
+    URL.revokeObjectURL(url);
+    const MAX_DIM = 1920;
+    let w = img.naturalWidth || img.width;
+    let h = img.naturalHeight || img.height;
+
+    console.log("HTMLImageElement decoded:", { naturalWidth: w, naturalHeight: h });
+
+    if (w > MAX_DIM || h > MAX_DIM) {
+      if (w > h) {
+        h = Math.round((h * MAX_DIM) / w);
+        w = MAX_DIM;
+      } else {
+        w = Math.round((w * MAX_DIM) / h);
+        h = MAX_DIM;
+      }
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, w, h);
+
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          console.log("Fallback Normalized Output:", {
+            canvasWidth: w,
+            canvasHeight: h,
+            size: `${(blob.size / 1024).toFixed(1)} KB`
+          });
+          console.groupEnd();
+          resolve(new File([blob], "selfie.jpg", { type: "image/jpeg" }));
+        } else {
+          console.groupEnd();
+          resolve(file);
+        }
+      },
+      "image/jpeg",
+      0.92
+    );
+  };
+  img.onerror = (e) => {
+    console.error("Image decode error:", e);
+    console.groupEnd();
+    resolve(file);
+  };
+  img.src = url;
+}
+
 async function runAiFaceScanSequence(file) {
   if (!file || !currentEventId) {
     if (!currentEventId) {
@@ -528,9 +661,12 @@ async function runAiFaceScanSequence(file) {
     return;
   }
 
+  // Prepare & normalize selfie image for mobile & desktop
+  const uploadReadyFile = await prepareSelfieForUpload(file);
+
   // Trigger backend facial analysis & photo search in parallel
   const formData = new FormData();
-  formData.append("selfie", file);
+  formData.append("selfie", uploadReadyFile);
   formData.append("eventId", currentEventId);
 
   const searchPromise = fetch(`${API_BASE_URL}/search`, {
@@ -552,6 +688,7 @@ async function runAiFaceScanSequence(file) {
     .catch((err) => {
       return { ok: false, data: { success: false, message: err.message || "Connection error" } };
     });
+
 
   try {
     // Step 1: PHOTO RECEIVED (Already displayed)
@@ -801,8 +938,10 @@ function captureCameraPhoto() {
 
   if (!video || !mediaStream) return;
 
-  canvas.width = video.videoWidth || 1280;
-  canvas.height = video.videoHeight || 720;
+  const vw = video.videoWidth || 1280;
+  const vh = video.videoHeight || 720;
+  canvas.width = vw;
+  canvas.height = vh;
   const ctx = canvas.getContext("2d");
 
   if (currentFacingMode === "user") {
@@ -815,6 +954,12 @@ function captureCameraPhoto() {
   canvas.toBlob(
     (blob) => {
       if (blob) {
+        console.log("[Webcam Diagnostic]", {
+          videoWidth: vw,
+          videoHeight: vh,
+          facingMode: currentFacingMode,
+          blobSize: `${(blob.size / 1024).toFixed(1)} KB`,
+        });
         const selfieFile = new File([blob], `selfie-${Date.now()}.jpg`, { type: "image/jpeg" });
         closeCameraModal();
         handleSelfieSelected(selfieFile);
@@ -824,6 +969,7 @@ function captureCameraPhoto() {
     0.95
   );
 }
+
 
 function setStatus(text, type) {
   const banner = document.getElementById("guest-status-banner");
