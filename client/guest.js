@@ -338,12 +338,34 @@ async function selectEventById(eventId) {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/events/${eventId}`);
+    const selectEl = document.getElementById("event-select");
+    const response = await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}`);
     const data = await response.json();
 
     if (data.success && data.event) {
       currentEventId = data.event.eventId;
       if (idEl) idEl.textContent = data.event.eventId;
+
+      if (selectEl) {
+        // If "No events available" placeholder is present, clear or prepend default option
+        if (selectEl.options.length === 1 && (selectEl.options[0].value === "" || selectEl.options[0].text.includes("No events"))) {
+          selectEl.innerHTML = `<option value="">-- Select Your Wedding Event --</option>`;
+        }
+
+        let option = Array.from(selectEl.options).find(
+          (opt) => opt.value.toUpperCase() === data.event.eventId.toUpperCase()
+        );
+        if (!option) {
+          option = document.createElement("option");
+          option.value = data.event.eventId;
+          option.textContent = `${data.event.name} (${data.event.eventId})${
+            data.event.location ? " · " + data.event.location : ""
+          }`;
+          selectEl.appendChild(option);
+        }
+        selectEl.value = data.event.eventId;
+      }
+
       updateSearchButtonState();
     } else {
       currentEventId = null;
@@ -356,6 +378,7 @@ async function selectEventById(eventId) {
     setStatus("Could not connect to server.", "error");
   }
 }
+
 
 function handleSelfieSelected(file) {
   if (!file) return;
