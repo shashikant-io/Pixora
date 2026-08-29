@@ -16,6 +16,8 @@ const upload = multer({
 
 const { requireCustomerForEvent } = require("../middleware/auth");
 
-router.post("/", requireCustomerForEvent, upload.single("selfie"), searchByFace);
+router.post("/", upload.single("selfie"), requireCustomerForEvent, searchByFace);
+
+
 
 module.exports = router;

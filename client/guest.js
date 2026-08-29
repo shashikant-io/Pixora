@@ -669,7 +669,7 @@ async function runAiFaceScanSequence(file) {
   formData.append("selfie", uploadReadyFile);
   formData.append("eventId", currentEventId);
 
-  const searchPromise = fetch(`${API_BASE_URL}/search`, {
+  const searchPromise = fetch(`${API_BASE_URL}/search?eventId=${encodeURIComponent(currentEventId)}`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${customerToken}`,
@@ -725,12 +725,17 @@ async function runAiFaceScanSequence(file) {
     if (!result.ok || !data.success) {
       if (activeView) activeView.classList.add("hidden");
       if (errorCard) errorCard.classList.remove("hidden");
-      setStatus("No face detected in selfie. Please upload a clear photo showing your face.", "error");
+      const errTitle = document.querySelector(".ai-error-title");
+      const errDesc = document.querySelector(".ai-error-desc");
+      if (errTitle) errTitle.textContent = data.message && !data.message.includes("No face detected") ? "SEARCH NOTICE" : "FACE NOT DETECTED";
+      if (errDesc) errDesc.textContent = data.message || "Please retake your selfie with your face clearly visible.";
+      setStatus(data.message || "No face detected in selfie. Please upload a clear photo showing your face.", "error");
       if (galleryEl) galleryEl.innerHTML = "";
       if (resultsSection) resultsSection.classList.add("hidden");
       isScanning = false;
       return;
     }
+
 
     // Step 6: FACE VERIFIED (100% completed state)
     if (stepLabel) stepLabel.textContent = "STEP 6/6";

@@ -81,7 +81,11 @@ function checkEventMatch(req, res, next) {
     });
   }
 
-  const targetEventId = req.body.eventId || req.params.eventId || req.query.eventId;
+  const targetEventId =
+    (req.body && req.body.eventId) ||
+    (req.params && req.params.eventId) ||
+    (req.query && req.query.eventId) ||
+    (req.user && req.user.eventId);
 
   if (!targetEventId) {
     return res.status(400).json({
@@ -89,6 +93,7 @@ function checkEventMatch(req, res, next) {
       message: "eventId is required to perform this action.",
     });
   }
+
 
   if (!req.user.eventId || req.user.eventId !== targetEventId) {
     return res.status(403).json({
