@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin & Photographer Sign In — Photo Finder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <div class="aura-bg">
+    <div class="page">
+      <header class="site-header">
+        <div class="container">
+          <a href="index.html" class="brand" aria-label="Photo Finder Home">
+            <svg class="brand-rings" viewBox="0 0 40 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <circle cx="14" cy="12" r="9" stroke="#FFFFFF" stroke-width="2.5" />
+              <circle cx="26" cy="12" r="9" stroke="#71717A" stroke-width="2.5" />
+            </svg>
+            <span class="brand-name">Photo Finder</span>
+          </a>
+
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <a href="index.html" class="btn btn-secondary btn-sm" style="padding: 0.4rem 0.85rem; font-size: 0.82rem; gap: 0.4rem;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+              </svg>
+              <span>Home</span>
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <main class="main" style="display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 160px); padding: 2rem 1rem;">
+        <div class="login-container">
+          <div class="login-card">
+            <!-- Ambient Glow -->
+            <div class="login-glow-accent"></div>
+
+            <!-- Header -->
+            <div class="login-header">
+              <div class="login-icon-badge">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              </div>
+              <h1 class="login-title">Photographer Portal</h1>
+              <p class="login-subtitle">Enter your authorized administrator Gmail to receive a 6-digit verification code.</p>
+            </div>
+
+            <!-- Global Alert Box -->
+            <div id="admin-alert" class="login-alert" style="display: none;"></div>
+
+            <!-- STEP 1: Enter Email & Send OTP -->
+            <form id="admin-send-otp-form" class="auth-panel">
+              <div class="form-group">
+                <label for="admin-email-input" class="form-label">Authorized Admin Gmail</label>
+                <div class="input-with-icon">
+                  <span class="input-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                      <polyline points="22,6 12,13 2,6"></polyline>
+                    </svg>
+                  </span>
+                  <input
+                    type="email"
+                    id="admin-email-input"
+                    class="form-control"
+                    placeholder="admin@gmail.com"
+                    required
+                    autocomplete="email"
+                  />
+                </div>
+                <span class="form-hint">Only registered photographer admin accounts can receive an access code.</span>
+              </div>
+
+              <button type="submit" id="btn-admin-send" class="btn btn-primary btn-block btn-lg" style="margin-top: 1.25rem;">
+                <span class="btn-text">Send 6-Digit Code</span>
+                <span class="btn-spinner" style="display: none;">
+                  <svg class="spinner-svg" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="32" stroke-linecap="round"/>
+                  </svg>
+                  <span>Sending code&hellip;</span>
+                </span>
+              </button>
+            </form>
+
+            <!-- STEP 2: Enter & Verify 6-Digit OTP -->
+            <form id="admin-verify-otp-form" class="auth-panel" style="display: none;">
+              <div class="otp-sent-info">
+                <div>
+                  <span style="font-size: 0.76rem; color: var(--text-muted); display: block;">Code sent to</span>
+                  <strong id="admin-target-email-display" style="color: #FFFFFF; font-size: 0.88rem;">admin@gmail.com</strong>
+                </div>
+                <button type="button" id="btn-admin-change-email" class="link-btn" style="font-size: 0.78rem;">Change</button>
+              </div>
+
+              <div class="form-group" style="margin-top: 1.25rem;">
+                <label class="form-label" style="text-align: center; display: block;">Enter 6-Digit Security Code</label>
+                <div class="otp-digit-grid" id="admin-otp-grid">
+                  <input type="text" maxlength="1" pattern="[0-9]" class="otp-digit" data-index="0" inputmode="numeric" autofocus />
+                  <input type="text" maxlength="1" pattern="[0-9]" class="otp-digit" data-index="1" inputmode="numeric" />
+                  <input type="text" maxlength="1" pattern="[0-9]" class="otp-digit" data-index="2" inputmode="numeric" />
+                  <input type="text" maxlength="1" pattern="[0-9]" class="otp-digit" data-index="3" inputmode="numeric" />
+                  <input type="text" maxlength="1" pattern="[0-9]" class="otp-digit" data-index="4" inputmode="numeric" />
+                  <input type="text" maxlength="1" pattern="[0-9]" class="otp-digit" data-index="5" inputmode="numeric" />
+                </div>
+              </div>
+
+              <div class="otp-timer-row">
+                <span style="color: var(--text-muted); font-size: 0.82rem;">Code expires in <strong id="admin-otp-expiry-timer" style="color: #FFFFFF;">05:00</strong></span>
+                <button type="button" id="btn-admin-resend" class="link-btn" disabled style="font-size: 0.82rem; opacity: 0.5;">
+                  Resend (<span id="admin-resend-countdown">60</span>s)
+                </button>
+              </div>
+
+              <button type="submit" id="btn-admin-verify" class="btn btn-primary btn-block btn-lg" style="margin-top: 1.25rem;">
+                <span class="btn-text">Verify & Enter Dashboard</span>
+                <span class="btn-spinner" style="display: none;">
+                  <svg class="spinner-svg" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="32" stroke-linecap="round"/>
+                  </svg>
+                  <span>Verifying&hellip;</span>
+                </span>
+              </button>
+            </form>
+
+            <!-- Security Footer -->
+            <div class="login-footer">
+              <div class="login-footer-security">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span>Hashed OTP Protection • Firebase Session Authentication</span>
+              </div>
+              <div style="margin-top: 0.75rem; text-align: center; font-size: 0.75rem; color: var(--text-muted);">
+                <span>Backend Server: </span>
+                <span id="api-url-badge" style="font-family: var(--font-mono); color: #A1A1AA; cursor: pointer; text-decoration: underline;" title="Click to change backend URL">Loading...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+    </div>
+  </div>
+
+  <script src="admin-login.js"></script>
+</body>
+
+</html>

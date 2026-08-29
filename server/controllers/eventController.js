@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const Event = require("../models/Event");
 const Photo = require("../models/Photo");
 const generateEventId = require("../utils/generateId");
@@ -6,6 +7,19 @@ const {
   deleteFolder,
   invalidateStorageUsageCache,
 } = require("../services/imagekitService");
+
+function generateAccessToken() {
+  return "tok_" + crypto.randomBytes(12).toString("hex");
+}
+
+function computeGuestUrl(event) {
+  const baseUrl = (process.env.PUBLIC_BASE_URL || "").trim().replace(/\/+$/, "");
+  const token = event.accessToken || event.eventId;
+  if (baseUrl) {
+    return `${baseUrl}/guest-login.html?token=${token}`;
+  }
+  return `/guest-login.html?token=${token}`;
+}
 
 async function createEvent(req, res) {
   try {
@@ -19,9 +33,11 @@ async function createEvent(req, res) {
     }
 
     const eventId = generateEventId();
+    const accessToken = generateAccessToken();
 
     const newEvent = await Event.create({
       eventId,
+      accessToken,
       name,
       date,
       location,
@@ -29,7 +45,10 @@ async function createEvent(req, res) {
 
     res.status(201).json({
       success: true,
-      event: newEvent,
+      event: {
+        ...newEvent.toObject(),
+        guestUrl: computeGuestUrl(newEvent),
+      },
     });
   } catch (error) {
     console.error("Create event error:", error);
@@ -43,22 +62,31 @@ async function createEvent(req, res) {
 async function getEvent(req, res) {
   try {
     const { eventId } = req.params;
-    const event = await Event.findOne({ eventId }).lean();
+    let event = await Event.findOne({
+      $or: [{ eventId }, { accessToken: eventId }],
+    });
 
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: "Event not found.",
+        message: "Event not found or invalid token.",
       });
     }
 
-    const photoCount = await Photo.countDocuments({ eventId });
+    // Auto-backfill accessToken if event doesn't have one yet
+    if (!event.accessToken) {
+      event.accessToken = generateAccessToken();
+      await event.save();
+    }
+
+    const photoCount = await Photo.countDocuments({ eventId: event.eventId });
 
     res.json({
       success: true,
       event: {
-        ...event,
+        ...event.toObject(),
         photoCount,
+        guestUrl: computeGuestUrl(event),
       },
     });
   } catch (error) {
@@ -72,7 +100,7 @@ async function getEvent(req, res) {
 
 async function listEvents(req, res) {
   try {
-    const events = await Event.find().sort({ createdAt: -1 }).lean();
+    const events = await Event.find().sort({ createdAt: -1 });
 
     // Aggregate photo counts for each event
     const photoCounts = await Photo.aggregate([
@@ -89,10 +117,19 @@ async function listEvents(req, res) {
       countMap[item._id] = item.count;
     });
 
-    const enrichedEvents = events.map((ev) => ({
-      ...ev,
-      photoCount: countMap[ev.eventId] || 0,
-    }));
+    const enrichedEvents = await Promise.all(
+      events.map(async (ev) => {
+        if (!ev.accessToken) {
+          ev.accessToken = generateAccessToken();
+          await ev.save();
+        }
+        return {
+          ...ev.toObject(),
+          photoCount: countMap[ev.eventId] || 0,
+          guestUrl: computeGuestUrl(ev),
+        };
+      })
+    );
 
     res.json({
       success: true,
@@ -158,4 +195,62 @@ async function deleteEvent(req, res) {
   }
 }
 
-module.exports = { createEvent, getEvent, listEvents, deleteEvent };
+/**
+ * GET /api/events/:eventId/qr
+ * Generates and returns high-resolution QR code data URL or PNG image
+ */
+async function getEventQrCode(req, res) {
+  try {
+    const { eventId } = req.params;
+    let event = await Event.findOne({
+      $or: [{ eventId }, { accessToken: eventId }],
+    });
+
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found.",
+      });
+    }
+
+    if (!event.accessToken) {
+      event.accessToken = generateAccessToken();
+      await event.save();
+    }
+
+    const guestUrl = computeGuestUrl(event);
+    const QRCode = require("qrcode");
+
+    if (req.query.format === "png" || req.query.download === "true") {
+      const buffer = await QRCode.toBuffer(guestUrl, { width: 400, margin: 2 });
+      res.setHeader("Content-Type", "image/png");
+      res.setHeader("Content-Disposition", `attachment; filename="${event.eventId}-guest-qr.png"`);
+      return res.send(buffer);
+    }
+
+    const qrDataUrl = await QRCode.toDataURL(guestUrl, { width: 300, margin: 2 });
+
+    res.json({
+      success: true,
+      eventId: event.eventId,
+      accessToken: event.accessToken,
+      guestUrl,
+      qrDataUrl,
+    });
+  } catch (error) {
+    console.error("Get Event QR Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Could not generate QR code.",
+    });
+  }
+}
+
+module.exports = {
+  createEvent,
+  getEvent,
+  listEvents,
+  deleteEvent,
+  getEventQrCode,
+};
+

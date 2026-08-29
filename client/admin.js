@@ -1,5 +1,7 @@
 const API_BASE_URL = "/api";
 
+
+
 let events = [];
 let selectedUploadFiles = [];
 let storageAutoRefreshTimer = null;
@@ -32,14 +34,18 @@ function getIcon(name) {
 }
 
 // ==========================================================================
-// Initialization
+// Initialization & Authentication Guard
 // ==========================================================================
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  const isAuthed = await validateAdminSession();
+  if (!isAuthed) return;
+
   checkServerStatus();
   initStoragePlanCard();
   loadEvents();
   setupAdminUploadControls();
   setupModalHandlers();
+  setupLogoutHandler();
 
   document.getElementById("create-event-form").addEventListener("submit", handleCreateEvent);
   document.getElementById("upload-btn").addEventListener("click", handleUploadPhotos);
@@ -59,6 +65,86 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
+// ==========================================================================
+// Authentication Session Guard & Headers Helper
+// ==========================================================================
+function getAdminToken() {
+  return (
+    localStorage.getItem("photo_finder_admin_token") ||
+    localStorage.getItem("photo_finder_token") ||
+    sessionStorage.getItem("photo_finder_admin_token") ||
+    sessionStorage.getItem("photo_finder_token")
+  );
+}
+
+function getAdminAuthHeaders(extraHeaders = {}) {
+  const token = getAdminToken();
+  return {
+    ...extraHeaders,
+    Authorization: `Bearer ${token || ""}`,
+  };
+}
+
+async function validateAdminSession() {
+  const token = getAdminToken();
+
+  if (!token) {
+    window.location.href = "admin-login.html?redirect=admin.html";
+    return false;
+  }
+
+  try {
+    const res = await fetch("/api/auth/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.success || data.user.role !== "admin") {
+      throw new Error(data.message || "Admin session expired or unauthorized.");
+    }
+
+    // Populate user profile UI
+    const badgeEl = document.getElementById("admin-user-badge");
+    const nameEl = document.getElementById("admin-user-name");
+    const avatarEl = document.getElementById("admin-avatar-initials");
+
+    if (badgeEl && nameEl) {
+      const displayName = data.user.name || data.user.email.split("@")[0];
+      nameEl.textContent = displayName;
+      if (avatarEl) {
+        avatarEl.textContent = displayName.charAt(0).toUpperCase();
+      }
+      badgeEl.style.display = "flex";
+      badgeEl.title = `Signed in as ${data.user.email}`;
+    }
+
+    return true;
+  } catch (err) {
+    console.warn("Admin session validation failed:", err.message);
+    localStorage.removeItem("photo_finder_admin_token");
+    localStorage.removeItem("photo_finder_token");
+    sessionStorage.removeItem("photo_finder_admin_token");
+    sessionStorage.removeItem("photo_finder_token");
+    window.location.href = "admin-login.html?redirect=admin.html";
+    return false;
+  }
+}
+
+function setupLogoutHandler() {
+  const logoutBtn = document.getElementById("btn-logout");
+  if (!logoutBtn) return;
+
+  logoutBtn.addEventListener("click", () => {
+    localStorage.removeItem("photo_finder_admin_token");
+    localStorage.removeItem("photo_finder_token");
+    localStorage.removeItem("photo_finder_user");
+    sessionStorage.removeItem("photo_finder_admin_token");
+    sessionStorage.removeItem("photo_finder_token");
+    sessionStorage.removeItem("photo_finder_user");
+    window.location.href = "admin-login.html";
+  });
+}
 
 // ==========================================================================
 // Server Status Check
@@ -182,7 +268,9 @@ async function loadStoragePlan(force = false) {
 
   try {
     const url = `${API_BASE_URL}/admin/storage${force ? "?force=true" : ""}`;
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: getAdminAuthHeaders(),
+    });
     const data = await response.json();
 
     if (!data.success) {
@@ -506,6 +594,7 @@ async function uploadSinglePhotoWithRetry(file, eventId, statusEl, onStageChange
 
       const response = await fetch(`${API_BASE_URL}/photos/upload`, {
         method: "POST",
+        headers: getAdminAuthHeaders(),
         body: formData,
       });
 
@@ -681,7 +770,7 @@ async function handleCreateEvent(e) {
   try {
     const response = await fetch(`${API_BASE_URL}/events`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAdminAuthHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ name, date, location }),
     });
     const data = await response.json();
@@ -706,7 +795,9 @@ async function loadEvents() {
   const selectEl = document.getElementById("upload-event-select");
 
   try {
-    const response = await fetch(`${API_BASE_URL}/events`);
+    const response = await fetch(`${API_BASE_URL}/events`, {
+      headers: getAdminAuthHeaders(),
+    });
     const data = await response.json();
 
     if (!data.success) throw new Error(data.message || "Could not load events.");
@@ -735,7 +826,10 @@ async function loadEvents() {
 
     listEl.innerHTML = "";
     events.forEach((ev) => {
-      const guestUrl = `${window.location.origin}/guest.html?event=${ev.eventId}`;
+      const token = ev.accessToken || ev.eventId;
+      const guestUrl = ev.guestUrl && ev.guestUrl.startsWith("http")
+        ? ev.guestUrl
+        : `${window.location.origin}/guest-login.html?token=${token}`;
       const photoCount = ev.photoCount || 0;
       const formattedDate = ev.date
         ? new Date(ev.date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
@@ -773,9 +867,9 @@ async function loadEvents() {
 
           <!-- Guest Access Link Box -->
           <div class="guest-access-box">
-            <div>
+            <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;">
               <div class="guest-access-label">Guest Access</div>
-              <div style="font-size: 0.815rem; color: var(--text-secondary); font-family: var(--font-mono);">${ev.eventId}</div>
+              <div style="font-size: 0.78rem; color: var(--text-secondary); font-family: var(--font-mono); overflow: hidden; text-overflow: ellipsis;" title="${guestUrl}">${token}</div>
             </div>
             <div class="guest-access-actions">
               <button type="button" class="btn btn-secondary btn-sm btn-copy-link" data-url="${guestUrl}" title="Copy Guest URL">
@@ -791,7 +885,7 @@ async function loadEvents() {
 
         <div>
           <div class="event-card-actions">
-            <button type="button" class="btn btn-secondary btn-sm btn-download-qr" data-url="${guestUrl}" data-id="${ev.eventId}">
+            <button type="button" class="btn btn-secondary btn-sm btn-view-qr" data-id="${ev.eventId}">
               ${getIcon("download")}
               <span>QR Code</span>
             </button>
@@ -818,23 +912,10 @@ async function loadEvents() {
         }
       });
 
-      // QR Code Download Button Action
-      const qrBtn = card.querySelector(".btn-download-qr");
+      // QR Code Modal Trigger Button
+      const qrBtn = card.querySelector(".btn-view-qr");
       qrBtn?.addEventListener("click", () => {
-        const tempCanvas = document.createElement("canvas");
-        if (window.QRCode) {
-          QRCode.toCanvas(tempCanvas, guestUrl, { width: 300, margin: 2 }, (err) => {
-            if (err) {
-              showToast("QR generation failed.", "error");
-              return;
-            }
-            const a = document.createElement("a");
-            a.href = tempCanvas.toDataURL("image/png");
-            a.download = `${ev.eventId}-guest-qr.png`;
-            a.click();
-            showToast("QR Code downloaded!");
-          });
-        }
+        openQrModal(ev, guestUrl);
       });
 
       // Delete Event Button Action (Modal Trigger)
@@ -854,31 +935,173 @@ async function loadEvents() {
 }
 
 // ==========================================================================
-// Custom Delete Confirmation Modal
+// Interactive QR Code Modal
+// ==========================================================================
+let activeQrEvent = null;
+let activeQrUrl = "";
+
+function openQrModal(ev, guestUrl) {
+  activeQrEvent = ev;
+  activeQrUrl = guestUrl;
+
+  const modal = document.getElementById("qr-display-modal");
+  const titleEl = document.getElementById("qr-modal-title");
+  const urlDisplay = document.getElementById("qr-modal-url-display");
+  const openLink = document.getElementById("qr-modal-open-link");
+  const canvas = document.getElementById("qr-modal-canvas");
+  const imgEl = document.getElementById("qr-modal-img");
+
+  if (!modal) return;
+
+  if (titleEl) titleEl.textContent = `${ev.name} — Guest QR`;
+  if (urlDisplay) urlDisplay.textContent = guestUrl;
+  if (openLink) openLink.href = guestUrl;
+
+  modal.classList.add("active");
+
+  // Render QR Code onto Canvas or Image fallback
+  let rendered = false;
+  if (canvas && window.QRCode && typeof window.QRCode.toCanvas === "function") {
+    try {
+      window.QRCode.toCanvas(
+        canvas,
+        guestUrl,
+        {
+          width: 240,
+          margin: 1,
+          color: {
+            dark: "#09090B",
+            light: "#FFFFFF",
+          },
+        },
+        (err) => {
+          if (!err) {
+            canvas.style.display = "block";
+            if (imgEl) imgEl.style.display = "none";
+            rendered = true;
+          } else {
+            fallbackRenderQr(ev, guestUrl, canvas, imgEl);
+          }
+        }
+      );
+      rendered = true;
+    } catch (e) {
+      fallbackRenderQr(ev, guestUrl, canvas, imgEl);
+    }
+  }
+
+  if (!rendered) {
+    fallbackRenderQr(ev, guestUrl, canvas, imgEl);
+  }
+}
+
+async function fallbackRenderQr(ev, guestUrl, canvas, imgEl) {
+  // 1. Try server-side QR API
+  try {
+    const res = await fetch(`/api/events/${encodeURIComponent(ev.eventId)}/qr`);
+    const data = await res.json();
+    if (data.success && data.qrDataUrl) {
+      if (imgEl) {
+        imgEl.src = data.qrDataUrl;
+        imgEl.style.display = "block";
+      }
+      if (canvas) canvas.style.display = "none";
+      return;
+    }
+  } catch (e) {}
+
+  // 2. Direct online QR image generator fallback
+  if (imgEl) {
+    imgEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=2&data=${encodeURIComponent(guestUrl)}`;
+    imgEl.style.display = "block";
+    if (canvas) canvas.style.display = "none";
+  }
+}
+
+function closeQrModal() {
+  const modal = document.getElementById("qr-display-modal");
+  if (modal) modal.classList.remove("active");
+  activeQrEvent = null;
+}
+
+// ==========================================================================
+// Custom Delete Confirmation Modal & Modal Global Setup
 // ==========================================================================
 let pendingDeleteEventId = null;
 
 function setupModalHandlers() {
-  const modal = document.getElementById("delete-confirm-modal");
+  // Delete Modal Handlers
+  const deleteModal = document.getElementById("delete-confirm-modal");
   const cancelBtn = document.getElementById("modal-cancel-btn");
   const confirmBtn = document.getElementById("modal-confirm-btn");
 
   cancelBtn?.addEventListener("click", closeDeleteModal);
 
-  modal?.addEventListener("click", (e) => {
-    if (e.target === modal) {
-      closeDeleteModal();
-    }
-  });
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && modal?.classList.contains("active")) {
-      closeDeleteModal();
-    }
+  deleteModal?.addEventListener("click", (e) => {
+    if (e.target === deleteModal) closeDeleteModal();
   });
 
   confirmBtn?.addEventListener("click", executeEventDeletion);
+
+  // QR Modal Handlers
+  const qrModal = document.getElementById("qr-display-modal");
+  const closeQrBtn = document.getElementById("qr-modal-close-btn");
+  const downloadQrBtn = document.getElementById("qr-modal-download-btn");
+  const copyQrBtn = document.getElementById("qr-modal-copy-btn");
+
+  closeQrBtn?.addEventListener("click", closeQrModal);
+
+  qrModal?.addEventListener("click", (e) => {
+    if (e.target === qrModal) closeQrModal();
+  });
+
+  copyQrBtn?.addEventListener("click", async () => {
+    if (!activeQrUrl) return;
+    try {
+      await navigator.clipboard.writeText(activeQrUrl);
+      copyQrBtn.innerHTML = "<span>Copied!</span>";
+      showToast("Guest access link copied to clipboard!");
+      setTimeout(() => {
+        copyQrBtn.innerHTML = "<span>Copy</span>";
+      }, 2000);
+    } catch (e) {
+      showToast("Failed to copy link.", "error");
+    }
+  });
+
+  downloadQrBtn?.addEventListener("click", () => {
+    if (!activeQrEvent) return;
+    const canvas = document.getElementById("qr-modal-canvas");
+    const imgEl = document.getElementById("qr-modal-img");
+
+    if (canvas && canvas.style.display !== "none" && canvas.width > 0) {
+      try {
+        const a = document.createElement("a");
+        a.href = canvas.toDataURL("image/png");
+        a.download = `${activeQrEvent.eventId}-guest-qr.png`;
+        a.click();
+        showToast(`Downloaded QR Code for "${activeQrEvent.name}"`);
+        return;
+      } catch (e) {}
+    }
+
+    // Direct download from server endpoint
+    const a = document.createElement("a");
+    a.href = `/api/events/${encodeURIComponent(activeQrEvent.eventId)}/qr?format=png&download=true`;
+    a.download = `${activeQrEvent.eventId}-guest-qr.png`;
+    a.click();
+    showToast(`Downloaded QR Code for "${activeQrEvent.name}"`);
+  });
+
+  // Global ESC Key Handler
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      if (deleteModal?.classList.contains("active")) closeDeleteModal();
+      if (qrModal?.classList.contains("active")) closeQrModal();
+    }
+  });
 }
+
 
 function openDeleteModal(eventId, eventName) {
   pendingDeleteEventId = eventId;
@@ -915,6 +1138,7 @@ async function executeEventDeletion() {
   try {
     const response = await fetch(`${API_BASE_URL}/events/${pendingDeleteEventId}`, {
       method: "DELETE",
+      headers: getAdminAuthHeaders(),
     });
     const data = await response.json();
 
@@ -936,3 +1160,4 @@ async function executeEventDeletion() {
     }
   }
 }
+

@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: wedding-photo-finder-backend
+    env: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false
+      - key: IMAGEKIT_PUBLIC_KEY
+        sync: false
+      - key: IMAGEKIT_PRIVATE_KEY
+        sync: false
+      - key: IMAGEKIT_URL_ENDPOINT
+        sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ADMIN_NAME
+        value: Shashikant
+      - key: PUBLIC_BASE_URL
+        value: https://photo-finder-42151.web.app
+      - key: FIREBASE_PROJECT_ID
+        value: photo-finder-42151
+      - key: FIREBASE_AUTH_DOMAIN
+        value: photo-finder-42151.firebaseapp.com
+      - key: FIREBASE_STORAGE_BUCKET
+        value: photo-finder-42151.firebasestorage.app
+      - key: FIREBASE_API_KEY
+        value: AIzaSyBwMHssrWrem4uig7biiSzQBuqxDX1Mj-k
+      - key: FIREBASE_MESSAGING_SENDER_ID
+        value: "346673272508"
+      - key: FIREBASE_APP_ID
+        value: 1:346673272508:web:b366322d28a61a0ae322b9
+      - key: FIREBASE_MEASUREMENT_ID
+        value: G-FE5SCW0L90

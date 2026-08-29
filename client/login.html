@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin & Photographer Sign In — Photo Finder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <div class="aura-bg">
+    <div class="page">
+      <header class="site-header">
+        <div class="container">
+          <a href="index.html" class="brand" aria-label="Photo Finder Home">
+            <svg class="brand-rings" viewBox="0 0 40 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <circle cx="14" cy="12" r="9" stroke="#FFFFFF" stroke-width="2.5" />
+              <circle cx="26" cy="12" r="9" stroke="#71717A" stroke-width="2.5" />
+            </svg>
+            <span class="brand-name">Photo Finder</span>
+          </a>
+
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <a href="index.html" class="btn btn-secondary btn-sm" style="padding: 0.4rem 0.85rem; font-size: 0.82rem; gap: 0.4rem;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+              </svg>
+              <span>Home</span>
+            </a>
+            <a href="guest.html" class="btn btn-secondary btn-sm" style="padding: 0.4rem 0.85rem; font-size: 0.82rem; gap: 0.4rem;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 8v4"/>
+                <path d="M12 16h.01"/>
+              </svg>
+              <span>Guest Portal</span>
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <main class="main" style="display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 160px); padding: 2rem 1rem;">
+        <div class="login-container">
+          <div class="login-card">
+            <!-- Glow Accents -->
+            <div class="login-glow-accent"></div>
+
+            <!-- Login Header -->
+            <div class="login-header">
+              <div class="login-icon-badge">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              </div>
+              <h1 class="login-title">Photographer Portal</h1>
+              <p class="login-subtitle">Sign in to manage events, upload media to ImageKit CDN, and access guest analytics.</p>
+            </div>
+
+            <!-- Global Alert Box -->
+            <div id="login-alert" class="login-alert" style="display: none;"></div>
+
+            <!-- Auth Mode Tab Switcher -->
+            <div class="auth-tabs" role="tablist">
+              <button type="button" class="auth-tab active" id="tab-password" role="tab" aria-selected="true" aria-controls="panel-password">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <span>Password</span>
+              </button>
+              <button type="button" class="auth-tab" id="tab-otp" role="tab" aria-selected="false" aria-controls="panel-otp">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+                <span>Email OTP Code</span>
+              </button>
+            </div>
+
+            <!-- TAB 1: Password / Credentials Panel -->
+            <form id="password-login-form" class="auth-panel" role="tabpanel" aria-labelledby="tab-password">
+              <div class="form-group">
+                <label for="login-email" class="form-label">Admin Email Address</label>
+                <div class="input-with-icon">
+                  <span class="input-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                      <polyline points="22,6 12,13 2,6"></polyline>
+                    </svg>
+                  </span>
+                  <input
+                    type="email"
+                    id="login-email"
+                    name="email"
+                    class="form-control"
+                    placeholder="shahikantchilga03@gmail.com"
+                    value="shahikantchilga03@gmail.com"
+                    required
+                    autocomplete="username"
+                  />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                  <label for="login-password" class="form-label" style="margin-bottom: 0;">Password / Google App Password</label>
+                  <button type="button" id="btn-quick-fill" class="quick-fill-link" title="Auto-fill configured credentials">
+                    ⚡ Quick Fill
+                  </button>
+                </div>
+                <div class="input-with-icon">
+                  <span class="input-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                  </span>
+                  <input
+                    type="password"
+                    id="login-password"
+                    name="password"
+                    class="form-control"
+                    placeholder="Enter password or App Password"
+                    required
+                    autocomplete="current-password"
+                  />
+                  <button type="button" id="toggle-password-btn" class="input-action-btn" aria-label="Toggle password visibility" title="Show/Hide Password">
+                    <svg id="eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  </button>
+                </div>
+                <span class="form-hint">Enter your configured password or Google App Password (<code>pipb ufbt wkow zjzk</code>)</span>
+              </div>
+
+              <div class="form-options">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="remember-me" checked />
+                  <span class="checkmark"></span>
+                  <span class="checkbox-label">Keep me signed in for 7 days</span>
+                </label>
+              </div>
+
+              <button type="submit" id="btn-password-submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1rem;">
+                <span class="btn-text">Sign In to Dashboard</span>
+                <span class="btn-spinner" style="display: none;">
+                  <svg class="spinner-svg" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="32" stroke-linecap="round"/>
+                  </svg>
+                  <span>Verifying...</span>
+                </span>
+              </button>
+            </form>
+
+            <!-- TAB 2: Email OTP Login Panel -->
+            <div id="otp-login-panel" class="auth-panel" role="tabpanel" aria-labelledby="tab-otp" style="display: none;">
+              <!-- Step 1: Request OTP -->
+              <form id="otp-request-form">
+                <div class="form-group">
+                  <label for="otp-email" class="form-label">Email for Verification Code</label>
+                  <div class="input-with-icon">
+                    <span class="input-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
+                      </svg>
+                    </span>
+                    <input
+                      type="email"
+                      id="otp-email"
+                      class="form-control"
+                      value="shahikantchilga03@gmail.com"
+                      placeholder="shahikantchilga03@gmail.com"
+                      required
+                    />
+                  </div>
+                  <span class="form-hint">A secure 6-digit one-time code will be dispatched to this inbox.</span>
+                </div>
+
+                <button type="submit" id="btn-send-otp" class="btn btn-primary btn-block btn-lg" style="margin-top: 1rem;">
+                  <span class="btn-text">Send Verification Code</span>
+                  <span class="btn-spinner" style="display: none;">
+                    <svg class="spinner-svg" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="32" stroke-linecap="round"/>
+                    </svg>
+                    <span>Sending code...</span>
+                  </span>
+                </button>
+              </form>
+
+              <!-- Step 2: Enter & Verify OTP (Revealed after code is sent) -->
+              <form id="otp-verify-form" style="display: none; margin-top: 1.25rem;">
+                <div class="otp-sent-info">
+                  <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                    Code sent to <strong id="otp-target-display" style="color: #FFFFFF;">shahikantchilga03@gmail.com</strong>
+                  </div>
+                  <button type="button" id="btn-change-email" class="link-btn" style="font-size: 0.78rem;">Change email</button>
+                </div>
+
+                <div class="form-group" style="margin-top: 1rem;">
+                  <label class="form-label" style="text-align: center; display: block;">Enter 6-Digit Passcode</label>
+                  <div class="otp-digit-grid" id="otp-digit-inputs">
+                    <input type="text" maxlength="1" pattern="[0-9]" class="otp-digit" data-index="0" inputmode="numeric" autofocus />
+                    <input type="text" maxlength="1" pattern="[0-9]" class="otp-digit" data-index="1" inputmode="numeric" />
+                    <input type="text" maxlength="1" pattern="[0-9]" class="otp-digit" data-index="2" inputmode="numeric" />
+                    <input type="text" maxlength="1" pattern="[0-9]" class="otp-digit" data-index="3" inputmode="numeric" />
+                    <input type="text" maxlength="1" pattern="[0-9]" class="otp-digit" data-index="4" inputmode="numeric" />
+                    <input type="text" maxlength="1" pattern="[0-9]" class="otp-digit" data-index="5" inputmode="numeric" />
+                  </div>
+                </div>
+
+                <div class="otp-timer-row">
+                  <span id="otp-timer-text" style="color: var(--text-muted); font-size: 0.82rem;">Expires in <strong id="otp-countdown">05:00</strong></span>
+                  <button type="button" id="btn-resend-otp" class="link-btn" disabled style="font-size: 0.82rem; opacity: 0.5;">Resend Code</button>
+                </div>
+
+                <button type="submit" id="btn-verify-otp" class="btn btn-primary btn-block btn-lg" style="margin-top: 1.25rem;">
+                  <span class="btn-text">Verify & Enter Dashboard</span>
+                  <span class="btn-spinner" style="display: none;">
+                    <svg class="spinner-svg" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="32" stroke-linecap="round"/>
+                    </svg>
+                    <span>Verifying...</span>
+                  </span>
+                </button>
+              </form>
+            </div>
+
+            <!-- Footer info -->
+            <div class="login-footer">
+              <div class="login-footer-security">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span>End-to-End Encrypted Session • AI Buffalo Engine</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="login.js"></script>
+</body>
+
+</html>

@@ -1,5 +1,7 @@
 const API_BASE_URL = "/api";
 
+
+
 let currentEventId = null;
 let currentSelfieFile = null;
 let availableEvents = [];
@@ -7,14 +9,77 @@ let mediaStream = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
   setupEventListeners();
+  checkGuestAuth();
   await loadAvailableEvents();
   setStatus("Choose your wedding event and upload a selfie to start.", "info");
+
+  document.getElementById("btn-guest-logout")?.addEventListener("click", () => {
+    sessionStorage.removeItem("photo_finder_customer_token");
+    sessionStorage.removeItem("photo_finder_customer_event");
+    sessionStorage.removeItem("photo_finder_customer_user");
+    localStorage.removeItem("photo_finder_customer_token");
+    localStorage.removeItem("photo_finder_customer_event");
+    window.location.reload();
+  });
 });
+
+function getCustomerToken() {
+  return (
+    sessionStorage.getItem("photo_finder_customer_token") ||
+    localStorage.getItem("photo_finder_customer_token") ||
+    localStorage.getItem("photo_finder_admin_token") ||
+    localStorage.getItem("photo_finder_token")
+  );
+}
+
+function checkGuestAuth() {
+  const token = getCustomerToken();
+  const badgeEl = document.getElementById("guest-user-badge");
+  const emailEl = document.getElementById("guest-user-email");
+  const initialsEl = document.getElementById("guest-avatar-initials");
+  const avatarImgEl = document.getElementById("guest-avatar-img");
+  const logoutBtn = document.getElementById("btn-guest-logout");
+
+  if (!token) {
+    if (badgeEl) badgeEl.style.display = "none";
+    if (logoutBtn) logoutBtn.style.display = "none";
+    return null;
+  }
+
+  try {
+    const userRaw =
+      sessionStorage.getItem("photo_finder_customer_user") ||
+      localStorage.getItem("photo_finder_customer_user") ||
+      localStorage.getItem("photo_finder_user");
+    if (userRaw) {
+      const user = JSON.parse(userRaw);
+      if (emailEl) {
+        emailEl.textContent = user.name || user.email;
+        emailEl.title = user.email || "";
+      }
+      if (user.picture && avatarImgEl) {
+        avatarImgEl.src = user.picture;
+        avatarImgEl.style.display = "block";
+        if (initialsEl) initialsEl.style.display = "none";
+      } else if (initialsEl) {
+        const displayName = user.name || user.email || "G";
+        initialsEl.textContent = displayName.charAt(0).toUpperCase();
+        initialsEl.style.display = "block";
+        if (avatarImgEl) avatarImgEl.style.display = "none";
+      }
+      if (badgeEl) badgeEl.style.display = "flex";
+      if (logoutBtn) logoutBtn.style.display = "inline-flex";
+    }
+  } catch (e) {}
+
+  return token;
+}
 
 function getEventIdFromUrl() {
   const params = new URLSearchParams(window.location.search);
-  return params.get("event");
+  return params.get("event") || params.get("token");
 }
+
 
 function setupEventListeners() {
   const selfieInput = document.getElementById("selfie-input");
@@ -186,11 +251,20 @@ function setupEventListeners() {
   }
 
   // Camera modal controls
+  const flipCameraBtn = document.getElementById("flip-camera-btn");
+  const cancelCameraBtn = document.getElementById("cancel-camera-btn");
+
   if (openCameraBtn) {
     openCameraBtn.addEventListener("click", openCameraModal);
   }
   if (closeCameraBtn) {
     closeCameraBtn.addEventListener("click", closeCameraModal);
+  }
+  if (cancelCameraBtn) {
+    cancelCameraBtn.addEventListener("click", closeCameraModal);
+  }
+  if (flipCameraBtn) {
+    flipCameraBtn.addEventListener("click", toggleCameraFacingMode);
   }
   if (capturePhotoBtn) {
     capturePhotoBtn.addEventListener("click", captureCameraPhoto);
@@ -424,6 +498,13 @@ async function runAiFaceScanSequence(file) {
     `).join("");
   }
 
+  // Check customer authentication before initiating search
+  const customerToken = getCustomerToken();
+  if (!customerToken) {
+    window.location.href = `guest-login.html?event=${encodeURIComponent(currentEventId)}`;
+    return;
+  }
+
   // Trigger backend facial analysis & photo search in parallel
   const formData = new FormData();
   formData.append("selfie", file);
@@ -431,10 +512,18 @@ async function runAiFaceScanSequence(file) {
 
   const searchPromise = fetch(`${API_BASE_URL}/search`, {
     method: "POST",
+    headers: {
+      Authorization: `Bearer ${customerToken}`,
+    },
     body: formData,
   })
     .then(async (res) => {
       const data = await res.json();
+      if (res.status === 401 || res.status === 403) {
+        // Customer session missing or event mismatch
+        window.location.href = `guest-login.html?event=${encodeURIComponent(currentEventId)}`;
+        return { ok: false, data };
+      }
       return { ok: res.ok, data };
     })
     .catch((err) => {
@@ -624,17 +713,37 @@ function closePhotoViewer() {
 }
 
 /* Camera capture handling */
+let currentFacingMode = "user";
+
 async function openCameraModal() {
   const modal = document.getElementById("camera-modal");
   const video = document.getElementById("camera-video");
 
   try {
+    if (mediaStream) {
+      mediaStream.getTracks().forEach((track) => track.stop());
+      mediaStream = null;
+    }
+
     mediaStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+      video: {
+        facingMode: currentFacingMode,
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      },
       audio: false,
     });
+
     video.srcObject = mediaStream;
+
+    if (currentFacingMode === "user") {
+      video.classList.add("mirror");
+    } else {
+      video.classList.remove("mirror");
+    }
+
     modal.classList.add("active");
+    document.body.style.overflow = "hidden";
   } catch (err) {
     console.error("Camera access error:", err);
     setStatus("Camera access denied or unavailable. Please choose a photo from files.", "error");
@@ -652,7 +761,15 @@ function closeCameraModal() {
   if (video) {
     video.srcObject = null;
   }
-  modal.classList.remove("active");
+  if (modal) {
+    modal.classList.remove("active");
+  }
+  document.body.style.overflow = "";
+}
+
+async function toggleCameraFacingMode() {
+  currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
+  await openCameraModal();
 }
 
 function captureCameraPhoto() {
@@ -661,12 +778,15 @@ function captureCameraPhoto() {
 
   if (!video || !mediaStream) return;
 
-  canvas.width = video.videoWidth || 640;
-  canvas.height = video.videoHeight || 480;
+  canvas.width = video.videoWidth || 1280;
+  canvas.height = video.videoHeight || 720;
   const ctx = canvas.getContext("2d");
 
-  ctx.translate(canvas.width, 0);
-  ctx.scale(-1, 1);
+  if (currentFacingMode === "user") {
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+  }
+
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
   canvas.toBlob(
@@ -678,7 +798,7 @@ function captureCameraPhoto() {
       }
     },
     "image/jpeg",
-    0.92
+    0.95
   );
 }
 

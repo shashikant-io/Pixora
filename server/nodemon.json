@@ -1,22 +1,6 @@
 {
-  "watch": [
-    "server.js",
-    "controllers",
-    "routes",
-    "services",
-    "faceRecognition",
-    "utils",
-    "models"
-  ],
-  "ignore": [
-    "uploads/**",
-    "uploads/*",
-    "uploads",
-    "*.json",
-    ".env",
-    "models/buffalo_m/**",
-    "test_*.js"
-  ],
-  "ext": "js",
-  "delay": 1000
+  "watch": ["controllers", "middleware", "models", "routes", "services", "utils", "faceRecognition.js", "server.js", ".env"],
+  "ignore": ["*.log", "uploads/*", "temp/*", "../client/*", "node_modules/*"],
+  "ext": "js,json,env",
+  "delay": 500
 }

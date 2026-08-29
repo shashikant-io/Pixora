@@ -27,6 +27,7 @@ app.use("/api/events", require("./routes/eventRoutes"));
 app.use("/api/photos", require("./routes/photoRoutes"));
 app.use("/api/search", require("./routes/searchRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
+app.use("/api/auth", require("./routes/authRoutes"));
 
 app.use("/api", (req, res) => {
   res.status(404).json({
@@ -43,10 +44,21 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT;
+if (require.main === module) {
+  const PORT = process.env.PORT || 4000;
 
-console.log("PORT TESTING:",PORT);
+  const server = app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+  server.on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(`[Server Notice] Port ${PORT} is already in use by another instance.`);
+    } else {
+      console.error("[Server Error]", err);
+    }
+  });
+}
+
+module.exports = app;
+

@@ -11,16 +11,12 @@
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
     rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="qrcode.min.js"></script>
 </head>
 
 <body>
   <div class="aura-bg">
-    <div class="aura-layer-1" aria-hidden="true"></div>
-    <div class="aura-layer-2" aria-hidden="true"></div>
-    <div class="aura-layer-3" aria-hidden="true"></div>
-    <div class="aura-layer-4" aria-hidden="true"></div>
-    <div class="page" style="position: relative; z-index: 1;">
+    <div class="page">
       <header class="site-header">
       <div class="container">
         <a href="index.html" class="brand">
@@ -31,10 +27,24 @@
           <span class="brand-name">Photo Finder</span>
         </a>
         <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div id="admin-user-badge" class="user-profile-badge" style="display: none;">
+            <div class="user-avatar-circle" id="admin-avatar-initials">S</div>
+            <span id="admin-user-name" style="font-weight: 600; color: #FFFFFF;">Admin</span>
+          </div>
+
           <span id="server-status" class="message message-info header-status-badge">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
             <span>Checking server&hellip;</span>
           </span>
+
+          <button type="button" id="btn-logout" class="btn-logout" title="Sign out of photographer dashboard">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Sign Out</span>
+          </button>
         </div>
       </div>
     </header>
@@ -50,7 +60,7 @@
           </button>
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+        <div class="dashboard-title-row">
           <div>
             <h1>Photographer Dashboard</h1>
             <p style="margin-top: 0.25rem;">Manage wedding events, upload media to ImageKit CDN, and track cloud storage.</p>
@@ -246,6 +256,57 @@
       </div>
     </main>
 
+    <!-- QR Code Modal Component -->
+    <div id="qr-display-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
+      <div class="modal-dialog" style="max-width: 440px; text-align: center;">
+        <div class="modal-icon-badge" style="background: rgba(255, 255, 255, 0.08); color: #FFFFFF;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+        </div>
+        <h3 id="qr-modal-title" class="modal-title" style="margin-bottom: 0.25rem;">Wedding Guest QR Code</h3>
+        <p id="qr-modal-subtitle" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+          Guests can scan this code to sign in with Google and find their photos.
+        </p>
+
+        <!-- QR Code Canvas Frame -->
+        <div style="background: #FFFFFF; padding: 1.25rem; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); margin-bottom: 1.25rem; min-width: 240px; min-height: 240px;">
+          <canvas id="qr-modal-canvas" width="240" height="240" style="display: block; max-width: 100%; height: auto;"></canvas>
+          <img id="qr-modal-img" alt="QR Code" style="display: none; width: 240px; height: 240px; border-radius: 4px;" />
+        </div>
+
+        <!-- URL Box -->
+        <div class="guest-access-box" style="margin-bottom: 1.25rem; text-align: left;">
+          <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px;">
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Guest Access URL</div>
+            <div id="qr-modal-url-display" style="font-size: 0.78rem; color: #FFFFFF; font-family: var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Loading...</div>
+          </div>
+          <button type="button" id="qr-modal-copy-btn" class="btn btn-secondary btn-sm" style="font-size: 0.76rem; padding: 0.35rem 0.65rem;">
+            <span>Copy</span>
+          </button>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="modal-actions" style="flex-direction: column; gap: 0.5rem;">
+          <button type="button" id="qr-modal-download-btn" class="btn btn-primary btn-block">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Download QR Code (PNG)</span>
+          </button>
+          <div style="display: flex; gap: 0.5rem; width: 100%;">
+            <a id="qr-modal-open-link" href="#" target="_blank" rel="noopener" class="btn btn-secondary" style="flex: 1; font-size: 0.82rem; text-align: center; text-decoration: none; justify-content: center;">
+              <span>Open Guest Page</span>
+            </a>
+            <button type="button" id="qr-modal-close-btn" class="btn btn-secondary" style="flex: 1; font-size: 0.82rem;">
+              <span>Close</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Confirmation Modal Component -->
     <div id="delete-confirm-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div class="modal-dialog">
@@ -273,6 +334,7 @@
         </div>
       </div>
     </div>
+
 
     <!-- Floating Toast Container -->
     <div id="toast-container" class="toast-container" aria-live="polite"></div>

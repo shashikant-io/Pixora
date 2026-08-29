@@ -14,11 +14,7 @@
 </head>
 <body>
   <div class="aura-bg">
-    <div class="aura-layer-1" aria-hidden="true"></div>
-    <div class="aura-layer-2" aria-hidden="true"></div>
-    <div class="aura-layer-3" aria-hidden="true"></div>
-    <div class="aura-layer-4" aria-hidden="true"></div>
-    <div class="page" style="position: relative; z-index: 1;">
+    <div class="page">
       <header class="site-header">
       <div class="container">
         <a href="index.html" class="brand">
@@ -28,14 +24,28 @@
           </svg>
           <span class="brand-name">Photo Finder</span>
         </a>
-        <button type="button" id="header-help-btn" class="btn btn-ghost btn-sm" style="color: var(--text-secondary);">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-          </svg>
-          <span>Help</span>
-        </button>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div id="guest-user-badge" class="user-profile-badge" style="display: none;">
+            <div class="user-avatar-circle" id="guest-avatar-wrapper" style="overflow: hidden; display: flex; align-items: center; justify-content: center;">
+              <img id="guest-avatar-img" src="" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; display: none;" />
+              <span id="guest-avatar-initials">G</span>
+            </div>
+            <span id="guest-user-email" style="font-weight: 600; color: #FFFFFF;">guest@example.com</span>
+          </div>
+
+          <button type="button" id="btn-guest-logout" class="btn btn-secondary btn-sm" style="display: none; padding: 0.35rem 0.75rem; font-size: 0.78rem;">
+            <span>Sign Out</span>
+          </button>
+
+          <button type="button" id="header-help-btn" class="btn btn-ghost btn-sm" style="color: var(--text-secondary);">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span>Help</span>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -53,7 +63,7 @@
           </div>
 
           <!-- Guest Find Photos Card -->
-          <div class="card" style="padding: 1.75rem 1.65rem;">
+          <div class="card guest-search-card">
             <div style="width: 46px; height: 46px; border-radius: 50%; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; color: #FFFFFF; margin: 0 auto 0.85rem auto;">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
@@ -199,25 +209,63 @@
       </div>
     </div>
 
-    <!-- Live Camera Capture Modal -->
-    <div id="camera-modal" class="modal-backdrop" role="dialog" aria-modal="true">
-      <div class="modal-dialog" style="max-width: 480px;">
-        <h3 style="margin-bottom: 0.35rem;">Take a Live Selfie</h3>
-        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">Align your face within the frame and click snap photo</p>
-        
-        <div style="position: relative; width: 100%; aspect-ratio: 4/3; border-radius: var(--radius-md); overflow: hidden; background: #000; border: 2px solid var(--accent-rose);">
-          <video id="camera-video" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
-        </div>
+    <!-- Live Full-Screen Camera Capture Viewfinder Modal -->
+    <div id="camera-modal" class="camera-modal-backdrop" role="dialog" aria-modal="true" aria-label="Take Live Selfie">
+      <div class="camera-fullscreen-viewport">
+        <!-- Live Video Element covering full background -->
+        <video id="camera-video" class="camera-preview-video" autoplay playsinline muted></video>
         <canvas id="camera-canvas" class="hidden"></canvas>
 
-        <div class="modal-actions" style="margin-top: 1.25rem;">
-          <button type="button" id="close-camera-btn" class="btn btn-secondary">
+        <!-- Top Camera Header Overlay (Glassmorphism) -->
+        <div class="camera-top-overlay">
+          <button type="button" id="close-camera-btn" class="camera-icon-btn" aria-label="Close camera">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6 6 18M6 6l12 12"/>
+            </svg>
+          </button>
+
+          <div class="camera-title-badge">
+            <span class="camera-live-pulse"></span>
+            <span>Live Camera</span>
+          </div>
+
+          <button type="button" id="flip-camera-btn" class="camera-icon-btn" aria-label="Flip camera" title="Switch Camera">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 10c0-4.418-3.582-8-8-8s-8 3.582-8 8c0 2.052.772 3.923 2.046 5.344L4 18h5v-5l-1.928 1.928C6.079 13.847 5.5 12.022 5.5 10c0-3.59 2.91-6.5 6.5-6.5s6.5 2.91 6.5 6.5c-1.127 0-2.18-.287-3.097-.793l-1.135 1.135C8.98 17.55 10.428 18 12 18c4.418 0 8-3.582 8-8z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Center Oval Face Guide Reticle (Helps align selfie perfectly) -->
+        <div class="camera-face-guide-wrap">
+          <div class="camera-face-oval">
+            <div class="camera-guide-corner corner-tl"></div>
+            <div class="camera-guide-corner corner-tr"></div>
+            <div class="camera-guide-corner corner-bl"></div>
+            <div class="camera-guide-corner corner-br"></div>
+          </div>
+          <p class="camera-guide-text">Position your face inside the frame</p>
+        </div>
+
+        <!-- Bottom Camera Action Controls Overlay -->
+        <div class="camera-bottom-overlay">
+          <button type="button" id="cancel-camera-btn" class="camera-text-cancel-btn">
             Cancel
           </button>
-          <button type="button" id="capture-photo-btn" class="btn btn-primary">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-            <span>Snap Photo</span>
+
+          <!-- Large Native-Style Shutter Button -->
+          <button type="button" id="capture-photo-btn" class="camera-shutter-btn" aria-label="Snap photo">
+            <div class="camera-shutter-ring">
+              <div class="camera-shutter-inner">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                  <circle cx="12" cy="13" r="3"/>
+                </svg>
+              </div>
+            </div>
           </button>
+
+          <div class="camera-ctrl-spacer"></div>
         </div>
       </div>
     </div>

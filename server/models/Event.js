@@ -6,6 +6,12 @@ const eventSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
+  accessToken: {
+    type: String,
+    unique: true,
+    sparse: true,
+    index: true,
+  },
   name: {
     type: String,
     required: true,

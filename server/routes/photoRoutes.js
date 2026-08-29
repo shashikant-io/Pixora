@@ -19,10 +19,12 @@ const upload = multer({
   },
 });
 
-router.post("/upload", upload.single("photo"), uploadPhoto);
+const { requireAdmin, requireCustomerForEvent } = require("../middleware/auth");
+
+router.post("/upload", requireAdmin, upload.single("photo"), uploadPhoto);
 router.get("/file/:fileId", streamPhoto);
 router.get("/download/:fileId", downloadPhoto);
 router.get("/:fileId/image", streamPhoto);
-router.get("/:eventId", getPhotosByEvent);
+router.get("/:eventId", requireCustomerForEvent, getPhotosByEvent);
 
 module.exports = router;
