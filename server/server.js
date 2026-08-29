@@ -27,18 +27,25 @@ const clientPath = path.join(__dirname, "..", "client");
 app.use(express.static(clientPath));
 
 
-app.get("/api/health", (req, res) => {
+const eventRoutes = require("./routes/eventRoutes");
+const photoRoutes = require("./routes/photoRoutes");
+const searchRoutes = require("./routes/searchRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const authRoutes = require("./routes/authRoutes");
+
+app.get(["/api/health", "/health"], (req, res) => {
   res.json({
     success: true,
     message: "Wedding Photo Finder server is running.",
   });
 });
 
-app.use("/api/events", require("./routes/eventRoutes"));
-app.use("/api/photos", require("./routes/photoRoutes"));
-app.use("/api/search", require("./routes/searchRoutes"));
-app.use("/api/admin", require("./routes/adminRoutes"));
-app.use("/api/auth", require("./routes/authRoutes"));
+// Mount routes on both /api/* and root /* for Vercel serverless and local Express compatibility
+app.use(["/api/events", "/events"], eventRoutes);
+app.use(["/api/photos", "/photos"], photoRoutes);
+app.use(["/api/search", "/search"], searchRoutes);
+app.use(["/api/admin", "/admin"], adminRoutes);
+app.use(["/api/auth", "/auth"], authRoutes);
 
 app.use("/api", (req, res) => {
   res.status(404).json({
@@ -46,6 +53,7 @@ app.use("/api", (req, res) => {
     message: "API route not found.",
   });
 });
+
 
 app.use((err, req, res, next) => {
   console.error(err);
