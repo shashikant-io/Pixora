@@ -5,21 +5,34 @@ try {
   dns.setServers(["8.8.8.8", "1.1.1.1"]);
 } catch (err) {}
 
+let cachedPromise = null;
+
 async function connectDB() {
-  const uri = process.env.MONGODB_URI;
-  console.log("CONNECTING TO DBM URI:",uri);
-  if (!uri) {
-    console.error("MONGODB_URI is missing in .env");
-    process.exit(1);
+  if (mongoose.connection.readyState >= 1) {
+    return mongoose.connection;
   }
 
-  try {
-    await mongoose.connect(uri);
-    console.log("MongoDB connected");
-  } catch (error) {
-    console.error("MongoDB connection failed:", error.message);
-    process.exit(1);
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    console.error("[Database] MONGODB_URI is missing in environment variables.");
+    return null;
   }
+
+  if (!cachedPromise) {
+    cachedPromise = mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 8000,
+    }).then((conn) => {
+      console.log("MongoDB connected");
+      return conn;
+    }).catch((error) => {
+      cachedPromise = null;
+      console.error("MongoDB connection error:", error.message);
+      throw error;
+    });
+  }
+
+  return cachedPromise;
 }
 
 module.exports = connectDB;
+

@@ -13,8 +13,19 @@ initFaceRecognition().catch((err) => console.error("Buffalo model init error:", 
 app.use(cors());
 app.use(express.json());
 
+// Ensure MongoDB is connected for serverless invocations
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+  } catch (e) {
+    console.error("[Database Connection Error]", e.message);
+  }
+  next();
+});
+
 const clientPath = path.join(__dirname, "..", "client");
 app.use(express.static(clientPath));
+
 
 app.get("/api/health", (req, res) => {
   res.json({
