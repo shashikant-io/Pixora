@@ -824,16 +824,35 @@ async function loadEvents() {
       .join("");
     updateUploadButtonState();
 
+function resolveGuestUrl(ev) {
+  const token = ev.accessToken || ev.eventId;
+  const currentOrigin = window.location.origin;
+
+  if (ev.guestUrl && typeof ev.guestUrl === "string" && ev.guestUrl.startsWith("http")) {
+    // If running in production (not on localhost) and server returned localhost, normalize to current production domain
+    if (!currentOrigin.includes("localhost") && !currentOrigin.includes("127.0.0.1") && (ev.guestUrl.includes("localhost") || ev.guestUrl.includes("127.0.0.1"))) {
+      try {
+        const parsed = new URL(ev.guestUrl);
+        return `${currentOrigin}${parsed.pathname}${parsed.search}`;
+      } catch (e) {
+        return `${currentOrigin}/guest-login.html?token=${token}`;
+      }
+    }
+    return ev.guestUrl;
+  }
+
+  return `${currentOrigin}/guest-login.html?token=${token}`;
+}
+
     listEl.innerHTML = "";
     events.forEach((ev) => {
       const token = ev.accessToken || ev.eventId;
-      const guestUrl = ev.guestUrl && ev.guestUrl.startsWith("http")
-        ? ev.guestUrl
-        : `${window.location.origin}/guest-login.html?token=${token}`;
+      const guestUrl = resolveGuestUrl(ev);
       const photoCount = ev.photoCount || 0;
       const formattedDate = ev.date
         ? new Date(ev.date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
         : "";
+
 
       const card = document.createElement("div");
       card.className = "event-card";
@@ -998,7 +1017,7 @@ function openQrModal(ev, guestUrl) {
 async function fallbackRenderQr(ev, guestUrl, canvas, imgEl) {
   // 1. Try server-side QR API
   try {
-    const res = await fetch(`/api/events/${encodeURIComponent(ev.eventId)}/qr`);
+    const res = await fetch(`/api/events/${encodeURIComponent(ev.eventId)}/qr?guestUrl=${encodeURIComponent(guestUrl)}`);
     const data = await res.json();
     if (data.success && data.qrDataUrl) {
       if (imgEl) {
@@ -1009,6 +1028,7 @@ async function fallbackRenderQr(ev, guestUrl, canvas, imgEl) {
       return;
     }
   } catch (e) {}
+
 
   // 2. Direct online QR image generator fallback
   if (imgEl) {
@@ -1087,10 +1107,11 @@ function setupModalHandlers() {
 
     // Direct download from server endpoint
     const a = document.createElement("a");
-    a.href = `/api/events/${encodeURIComponent(activeQrEvent.eventId)}/qr?format=png&download=true`;
+    a.href = `/api/events/${encodeURIComponent(activeQrEvent.eventId)}/qr?format=png&download=true&guestUrl=${encodeURIComponent(activeQrUrl)}`;
     a.download = `${activeQrEvent.eventId}-guest-qr.png`;
     a.click();
     showToast(`Downloaded QR Code for "${activeQrEvent.name}"`);
+
   });
 
   // Global ESC Key Handler

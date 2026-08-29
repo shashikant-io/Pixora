@@ -12,8 +12,35 @@ function generateAccessToken() {
   return "tok_" + crypto.randomBytes(12).toString("hex");
 }
 
-function computeGuestUrl(event) {
-  const baseUrl = (process.env.PUBLIC_BASE_URL || "").trim().replace(/\/+$/, "");
+function computeGuestUrl(event, req = null) {
+  let baseUrl = (process.env.PUBLIC_BASE_URL || "").trim().replace(/\/+$/, "");
+
+  // Auto-detect production domain if running on Vercel or in production mode
+  const isProd = process.env.NODE_ENV === "production" || !!process.env.VERCEL || !!process.env.VERCEL_URL;
+
+  if (!baseUrl || (isProd && (baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1")))) {
+    if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+      baseUrl = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL.replace(/\/+$/, "")}`;
+    } else if (process.env.VERCEL_URL) {
+      baseUrl = `https://${process.env.VERCEL_URL.replace(/\/+$/, "")}`;
+    } else if (req) {
+      const proto = req.headers["x-forwarded-proto"] || req.protocol || "http";
+      const host = req.headers["x-forwarded-host"] || req.get("host");
+      if (host && !host.includes("localhost") && !host.includes("127.0.0.1")) {
+        baseUrl = `${proto}://${host}`;
+      }
+    }
+  }
+
+  // Fallback to request host if baseUrl still unset
+  if (!baseUrl && req) {
+    const proto = req.headers["x-forwarded-proto"] || req.protocol || "http";
+    const host = req.headers["x-forwarded-host"] || req.get("host");
+    if (host) {
+      baseUrl = `${proto}://${host}`;
+    }
+  }
+
   const token = event.accessToken || event.eventId;
   if (baseUrl) {
     return `${baseUrl}/guest-login.html?token=${token}`;
@@ -47,9 +74,10 @@ async function createEvent(req, res) {
       success: true,
       event: {
         ...newEvent.toObject(),
-        guestUrl: computeGuestUrl(newEvent),
+        guestUrl: computeGuestUrl(newEvent, req),
       },
     });
+
   } catch (error) {
     console.error("Create event error:", error);
     res.status(500).json({
@@ -86,7 +114,7 @@ async function getEvent(req, res) {
       event: {
         ...event.toObject(),
         photoCount,
-        guestUrl: computeGuestUrl(event),
+        guestUrl: computeGuestUrl(event, req),
       },
     });
   } catch (error) {
@@ -126,10 +154,11 @@ async function listEvents(req, res) {
         return {
           ...ev.toObject(),
           photoCount: countMap[ev.eventId] || 0,
-          guestUrl: computeGuestUrl(ev),
+          guestUrl: computeGuestUrl(ev, req),
         };
       })
     );
+
 
     res.json({
       success: true,
@@ -218,7 +247,7 @@ async function getEventQrCode(req, res) {
       await event.save();
     }
 
-    const guestUrl = computeGuestUrl(event);
+    const guestUrl = req.query.guestUrl || computeGuestUrl(event, req);
     const QRCode = require("qrcode");
 
     if (req.query.format === "png" || req.query.download === "true") {
@@ -227,6 +256,7 @@ async function getEventQrCode(req, res) {
       res.setHeader("Content-Disposition", `attachment; filename="${event.eventId}-guest-qr.png"`);
       return res.send(buffer);
     }
+
 
     const qrDataUrl = await QRCode.toDataURL(guestUrl, { width: 300, margin: 2 });
 
