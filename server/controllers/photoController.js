@@ -138,6 +138,10 @@ async function uploadPhoto(req, res) {
     let faces = [];
 
     try {
+      const { isLoaded, initModels } = require("../faceRecognition/modelLoader");
+      if (!isLoaded()) {
+        await initModels();
+      }
       const buffaloFaces = await processPhotoFaces(req.file.buffer);
       if (Array.isArray(buffaloFaces)) {
         faces = buffaloFaces;
@@ -145,6 +149,7 @@ async function uploadPhoto(req, res) {
     } catch (faceErr) {
       console.warn(`[AI Engine] Face extraction warning for "${req.file.originalname}":`, faceErr.message);
     }
+
 
     // Stage 2: Direct Upload to ImageKit CDN
     stage = "storage";

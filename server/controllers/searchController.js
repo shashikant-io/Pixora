@@ -1,6 +1,7 @@
 const Photo = require("../models/Photo");
 const Event = require("../models/Event");
 const { findMatchingPhotos, processSelfieFace } = require("../services/faceService");
+const { isLoaded, initModels } = require("../faceRecognition/modelLoader");
 
 async function searchByFace(req, res) {
   try {
@@ -17,7 +18,17 @@ async function searchByFace(req, res) {
       });
     }
 
+    // Ensure Buffalo ONNX inference sessions are ready
+    if (!isLoaded()) {
+      try {
+        await initModels();
+      } catch (mErr) {
+        console.error("[FaceSearch] Model initialization notice:", mErr.message);
+      }
+    }
+
     let guestEmbedding = null;
+
 
     // Buffalo ONNX face extraction directly from image buffer in memory
     try {
