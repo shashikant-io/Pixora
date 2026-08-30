@@ -1,4 +1,4 @@
-# Photo Finder 📸
+# pixora
 
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/backend-Express.js-blue.svg)](https://expressjs.com/)
