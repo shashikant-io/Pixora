@@ -281,7 +281,13 @@ async function loadAvailableEvents() {
   const selectEl = document.getElementById("event-select");
 
   try {
-    const response = await fetch(`${API_BASE_URL}/events`);
+    const headers = {};
+    const token = getCustomerToken();
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/events`, { headers });
     const data = await response.json();
 
     if (data.success && Array.isArray(data.events) && data.events.length > 0) {

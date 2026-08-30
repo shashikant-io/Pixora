@@ -37,6 +37,8 @@ app.get(["/api/health", "/health"], (req, res) => {
   res.json({
     success: true,
     message: "Wedding Photo Finder server is running.",
+    version: "1.0.5",
+    timestamp: "2026-08-30T04:35:00.000Z",
   });
 });
 
