@@ -4297,3 +4297,363 @@ select option {
 }
 
 
+/* ==========================================================================
+   Guest Page — Mobile-First Responsive Refinements
+   Targeting 360px – 430px viewports for polished production UX
+   ========================================================================== */
+
+/* Prevent any horizontal overflow at root level */
+@media (max-width: 768px) {
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  .aura-bg,
+  .page {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   HEADER — Compact, no-overflow mobile header
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .site-header .container {
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
+    min-height: 50px;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+  }
+
+  /* Brand name keeps single line, slightly smaller */
+  .brand-name {
+    font-size: 1rem;
+    white-space: nowrap;
+  }
+
+  .brand-rings {
+    width: 24px;
+    height: 17px;
+  }
+
+  .brand {
+    gap: 0.5rem;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  /* Right side of header — compact pill + sign-out */
+  .site-header .container > div {
+    gap: 0.4rem;
+    flex-shrink: 0;
+    align-items: center;
+  }
+
+  /* User profile pill — smaller on mobile */
+  .user-profile-badge {
+    padding: 0.22rem 0.5rem;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    max-width: 130px;
+  }
+
+  #guest-user-email {
+    max-width: 72px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.75rem;
+  }
+
+  .user-avatar-circle {
+    width: 20px;
+    height: 20px;
+    font-size: 0.65rem;
+    flex-shrink: 0;
+  }
+
+  /* Sign Out button — compact */
+  #btn-guest-logout {
+    padding: 0.28rem 0.55rem !important;
+    font-size: 0.72rem !important;
+    height: 28px;
+    white-space: nowrap;
+  }
+
+  /* Help button — icon only on narrow screens */
+  #header-help-btn span {
+    display: none;
+  }
+
+  #header-help-btn {
+    padding: 0;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+  }
+}
+
+/* Very narrow screens — hide help button entirely */
+@media (max-width: 380px) {
+  #header-help-btn {
+    display: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   MAIN LAYOUT — Reduce excessive spacing
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .main {
+    padding: 1rem 0 1.5rem;
+  }
+
+  /* Container around the search card */
+  .main .container {
+    padding: 0 12px;
+  }
+
+  /* The back button row */
+  .main .container > div > div:first-child {
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   GUEST SEARCH CARD — Fit naturally in viewport
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .guest-search-card {
+    padding: 1.15rem 1rem;
+  }
+
+  /* Camera icon circle */
+  .guest-search-card > div:first-child {
+    width: 40px !important;
+    height: 40px !important;
+    margin-bottom: 0.65rem !important;
+  }
+
+  /* Heading: "Find Your Photos" */
+  .guest-search-card h1 {
+    font-size: 1.35rem !important;
+    margin-bottom: 0.2rem !important;
+  }
+
+  /* Subtitle */
+  .guest-search-card p {
+    font-size: 0.8rem !important;
+    margin-bottom: 1rem !important;
+    line-height: 1.5;
+    padding: 0 0.25rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   WEDDING EVENT LABEL ROW — "Wedding Event" + "How it works" side by side
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .field label {
+    font-size: 0.8rem;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  #how-it-works-btn {
+    font-size: 0.72rem !important;
+    gap: 0.25rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Event dropdown — full width, text truncated */
+  #event-select {
+    width: 100%;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  /* Event code badge — centered */
+  #active-event-badge-container {
+    text-align: center;
+    margin-top: 0.4rem;
+  }
+
+  #active-event-badge-container .event-id-badge {
+    font-size: 0.72rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   SELFIE SECTION — Compact preview card
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  /* The dropzone / selfie upload area */
+  .upload-drop {
+    padding: 0.75rem 0.85rem;
+    margin-bottom: 8px;
+  }
+
+  /* Selfie loaded preview — tighter layout */
+  #dropzone-preview-content > div {
+    gap: 0.6rem !important;
+  }
+
+  /* Selfie thumbnail — slightly smaller */
+  #dropzone-preview-content > div > div:first-child {
+    width: 50px !important;
+    height: 50px !important;
+    flex-shrink: 0;
+  }
+
+  /* Text area beside thumbnail */
+  #dropzone-preview-content > div > div:last-child {
+    min-width: 0;
+    flex: 1;
+  }
+
+  /* "Your Selfie Loaded" text */
+  #dropzone-preview-content > div > div:last-child > div:first-child {
+    font-size: 0.83rem !important;
+  }
+
+  /* "Ready for Buffalo Face AI matching" subtitle */
+  #dropzone-preview-content > div > div:last-child > p {
+    font-size: 0.72rem !important;
+    margin: 0.05rem 0 !important;
+  }
+
+  /* "Photo Ready" badge */
+  #dropzone-preview-content .message.message-success {
+    font-size: 0.68rem !important;
+    padding: 0.1rem 0.4rem !important;
+    gap: 0.2rem !important;
+  }
+
+  /* X remove button — keep positioned */
+  #remove-selfie-btn {
+    width: 18px !important;
+    height: 18px !important;
+    top: 2px !important;
+    right: 2px !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   UPLOAD & CAMERA BUTTONS — Equal width, side by side; stack at 360px
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  /* Row holding "Upload Photo" + "Take Selfie" */
+  #upload-dropzone + div,
+  .upload-drop + div {
+    gap: 0.5rem;
+  }
+
+  #browse-btn,
+  #open-camera-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 46px !important;
+    font-size: 0.82rem !important;
+    padding: 0 0.6rem !important;
+  }
+
+  #browse-btn span,
+  #open-camera-btn span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* "Find My Photos" — full width, touch-friendly */
+  #search-btn {
+    height: 48px !important;
+    font-size: 0.9rem !important;
+    border-radius: 10px;
+  }
+}
+
+/* Stack upload/camera buttons on very narrow screens */
+@media (max-width: 360px) {
+  #browse-btn,
+  #open-camera-btn {
+    height: 44px !important;
+    font-size: 0.78rem !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   UPLOAD BUTTON ROW — Direct parent div targeting
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  /* The flex row wrapping #browse-btn + #open-camera-btn */
+  div:has(> #browse-btn) {
+    display: flex !important;
+    gap: 0.5rem !important;
+    margin-bottom: 0.85rem !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   STATUS BANNER — Proper margin on mobile
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  #guest-status-banner {
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   MANUAL EVENT INPUT GROUP — responsive
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  #manual-event-group {
+    flex-direction: row;
+    gap: 0.4rem !important;
+  }
+
+  #manual-event-id {
+    font-size: 0.82rem;
+  }
+
+  #apply-manual-event-btn {
+    font-size: 0.75rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   CAMERA MODAL — full-screen fit on mobile
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .camera-modal-dialog {
+    padding: 1rem;
+    max-width: 100vw;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   MATCHED GALLERY — 2-column on mobile, 1-column on very narrow
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .matched-photos-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  .matched-results-title {
+    font-size: 1.35rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .matched-photos-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
