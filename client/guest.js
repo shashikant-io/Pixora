@@ -1,6 +1,17 @@
-const API_BASE_URL = "/api";
-
-
+function getApiBaseUrl() {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    const port = window.location.port;
+    if ((host === "localhost" || host === "127.0.0.1") && port && port !== "4000") {
+      return "http://localhost:4000/api";
+    }
+    if (window.location.protocol === "file:") {
+      return "http://localhost:4000/api";
+    }
+  }
+  return "/api";
+}
+const API_BASE_URL = getApiBaseUrl();
 
 let currentEventId = null;
 let currentSelfieFile = null;
@@ -77,7 +88,13 @@ function checkGuestAuth() {
 
 function getEventIdFromUrl() {
   const params = new URLSearchParams(window.location.search);
-  return params.get("event") || params.get("token");
+  return (
+    params.get("event") ||
+    params.get("token") ||
+    params.get("eventId") ||
+    params.get("id") ||
+    ""
+  ).trim();
 }
 
 
@@ -279,6 +296,7 @@ function setupEventListeners() {
 async function loadAvailableEvents() {
   const urlEventId = getEventIdFromUrl();
   const selectEl = document.getElementById("event-select");
+  const idEl = document.getElementById("active-event-id");
 
   try {
     const headers = {};
@@ -288,6 +306,9 @@ async function loadAvailableEvents() {
     }
 
     const response = await fetch(`${API_BASE_URL}/events`, { headers });
+    if (!response.ok) {
+      throw new Error(`Server response error: ${response.status}`);
+    }
     const data = await response.json();
 
     if (data.success && Array.isArray(data.events) && data.events.length > 0) {
@@ -306,20 +327,23 @@ async function loadAvailableEvents() {
 
       if (urlEventId) {
         const found = availableEvents.find(
-          (e) => e.eventId.toUpperCase() === urlEventId.toUpperCase()
+          (e) =>
+            (e.eventId && e.eventId.toUpperCase() === urlEventId.toUpperCase()) ||
+            (e.accessToken && e.accessToken.toUpperCase() === urlEventId.toUpperCase())
         );
         if (found) {
           selectEl.value = found.eventId;
-          selectEventById(found.eventId);
+          await selectEventById(found.eventId);
         } else {
           await selectEventById(urlEventId);
         }
       } else if (availableEvents.length > 0) {
         selectEl.value = availableEvents[0].eventId;
-        selectEventById(availableEvents[0].eventId);
+        await selectEventById(availableEvents[0].eventId);
       }
     } else {
       selectEl.innerHTML = `<option value="">No events available</option>`;
+      if (idEl) idEl.textContent = "None Selected";
       if (urlEventId) {
         await selectEventById(urlEventId);
       }
@@ -327,6 +351,7 @@ async function loadAvailableEvents() {
   } catch (error) {
     console.error("Error loading events:", error);
     selectEl.innerHTML = `<option value="">Could not load events</option>`;
+    if (idEl) idEl.textContent = "None Selected";
     if (urlEventId) {
       await selectEventById(urlEventId);
     }
@@ -354,7 +379,7 @@ async function selectEventById(eventId) {
 
       if (selectEl) {
         // If "No events available" placeholder is present, clear or prepend default option
-        if (selectEl.options.length === 1 && (selectEl.options[0].value === "" || selectEl.options[0].text.includes("No events"))) {
+        if (selectEl.options.length <= 1 && (selectEl.options[0]?.value === "" || selectEl.options[0]?.text.includes("No events") || selectEl.options[0]?.text.includes("Loading"))) {
           selectEl.innerHTML = `<option value="">-- Select Your Wedding Event --</option>`;
         }
 

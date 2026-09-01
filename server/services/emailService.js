@@ -36,22 +36,22 @@ async function verifySmtpConnection() {
  */
 async function sendOtpEmail(toEmail, otpCode, options = {}) {
   const mailer = getTransporter();
-  const fromUser = process.env.EMAIL_USER || "noreply@photofinder.ai";
+  const fromUser = process.env.EMAIL_USER || "noreply@pixora.ai";
   const role = options.role || "customer";
   const eventName = options.eventName || "Wedding Event";
 
   const isAdmin = role === "admin";
   const emailTitle = isAdmin ? "Photographer Admin Sign In" : `Find Your Photos — ${eventName}`;
   const subject = isAdmin
-    ? `🔐 Photo Finder Admin Code: ${otpCode}`
-    : `📸 Your Event Photo Finder Code: ${otpCode}`;
+    ? `🔐 Pixora Admin Code: ${otpCode}`
+    : `📸 Your Pixora Event Code: ${otpCode}`;
 
   const messageText = isAdmin
-    ? "You requested access to your Photo Finder Photographer Dashboard. Enter the one-time passcode below to verify your session:"
+    ? "You requested access to your Pixora Photographer Dashboard. Enter the one-time passcode below to verify your session:"
     : `You requested access to view and find your photos from <strong>${eventName}</strong>. Enter the one-time passcode below to start finding yourself in the photos:`;
 
   const mailOptions = {
-    from: `"Photo Finder" <${fromUser}>`,
+    from: `"Pixora" <${fromUser}>`,
     to: toEmail,
     subject,
     html: `
@@ -76,7 +76,7 @@ async function sendOtpEmail(toEmail, otpCode, options = {}) {
         <div class="container">
           <div class="header">
             <div style="font-size: 28px;">📸</div>
-            <div class="brand-title">Photo Finder</div>
+            <div class="brand-title">Pixora</div>
           </div>
           <div class="content">
             <div class="title">${emailTitle}</div>
@@ -86,7 +86,7 @@ async function sendOtpEmail(toEmail, otpCode, options = {}) {
             <p style="font-size: 12px; color: #71717A; margin-top: 24px;">If you did not request this login code, you can safely ignore this email.</p>
           </div>
           <div class="footer">
-            &copy; ${new Date().getFullYear()} Photo Finder Platform. Buffalo AI Face Recognition.
+            &copy; ${new Date().getFullYear()} Pixora Platform. Buffalo AI Face Recognition.
           </div>
         </div>
       </body>

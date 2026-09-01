@@ -1,7 +1,7 @@
 {
   "name": "wedding-photo-finder-server",
   "version": "1.0.0",
-  "description": "Backend for Wedding Photo Finder - Express + MongoDB + ImageKit",
+  "description": "Backend for Pixora - Express + MongoDB + ImageKit",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {

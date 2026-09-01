@@ -1,3 +1,8 @@
+const dns = require("dns");
+try {
+  dns.setServers(["8.8.8.8", "1.1.1.1", "8.8.4.4"]);
+} catch (err) {}
+
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 const express = require("express");
@@ -36,7 +41,7 @@ const authRoutes = require("./routes/authRoutes");
 app.get(["/api/health", "/health"], (req, res) => {
   res.json({
     success: true,
-    message: "Wedding Photo Finder server is running.",
+    message: "Pixora server is running.",
     version: "1.0.5",
     timestamp: "2026-08-30T04:35:00.000Z",
   });

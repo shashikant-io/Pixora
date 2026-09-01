@@ -1,9 +1,9 @@
 {
   "name": "wedding-photo-finder",
   "version": "1.0.0",
-  "description": "AI-Powered Wedding & Event Photo Finder with 5TB Google Drive Storage",
+  "description": "Pixora - AI-Powered Event & Wedding Photo Distribution Platform",
   "scripts": {
-    "start": "node server/server.js",
+    "start": "npm --prefix server start",
     "dev": "npm --prefix server run dev"
   },
   "dependencies": {

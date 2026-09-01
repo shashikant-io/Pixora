@@ -1,12 +1,25 @@
 /**
- * Photo Finder — Customer Google Sign-In & Event Authorization Controller
+ * Pixora — Customer Google Sign-In & Event Authorization Controller
  * Modern Firebase Web SDK (v10 Modular)
  */
 
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-const API_BASE_URL = "/api";
+function getApiBaseUrl() {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    const port = window.location.port;
+    if ((host === "localhost" || host === "127.0.0.1") && port && port !== "4000") {
+      return "http://localhost:4000/api";
+    }
+    if (window.location.protocol === "file:") {
+      return "http://localhost:4000/api";
+    }
+  }
+  return "/api";
+}
+const API_BASE_URL = getApiBaseUrl();
 
 
 document.addEventListener("DOMContentLoaded", async () => {

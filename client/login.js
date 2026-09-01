@@ -1,8 +1,21 @@
 /**
- * Photo Finder — Photographer & Admin Authentication Controller
+ * Pixora — Photographer & Admin Authentication Controller
  */
 
-const API_BASE_URL = "/api";
+function getApiBaseUrl() {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    const port = window.location.port;
+    if ((host === "localhost" || host === "127.0.0.1") && port && port !== "4000") {
+      return "http://localhost:4000/api";
+    }
+    if (window.location.protocol === "file:") {
+      return "http://localhost:4000/api";
+    }
+  }
+  return "/api";
+}
+const API_BASE_URL = getApiBaseUrl();
 
 
 document.addEventListener("DOMContentLoaded", () => {

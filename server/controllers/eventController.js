@@ -90,8 +90,16 @@ async function createEvent(req, res) {
 async function getEvent(req, res) {
   try {
     const { eventId } = req.params;
+    if (!eventId) {
+      return res.status(400).json({ success: false, message: "Event ID is required." });
+    }
+
+    const cleanId = eventId.trim();
     let event = await Event.findOne({
-      $or: [{ eventId }, { accessToken: eventId }],
+      $or: [
+        { eventId: new RegExp(`^${cleanId}$`, "i") },
+        { accessToken: cleanId },
+      ],
     });
 
     if (!event) {
@@ -104,10 +112,15 @@ async function getEvent(req, res) {
     // Auto-backfill accessToken if event doesn't have one yet
     if (!event.accessToken) {
       event.accessToken = generateAccessToken();
-      await event.save();
+      await event.save().catch(() => {});
     }
 
-    const photoCount = await Photo.countDocuments({ eventId: event.eventId });
+    let photoCount = 0;
+    try {
+      photoCount = await Photo.countDocuments({ eventId: event.eventId });
+    } catch (e) {
+      console.warn("Photo count warning:", e.message);
+    }
 
     res.json({
       success: true,
@@ -130,26 +143,33 @@ async function listEvents(req, res) {
   try {
     const events = await Event.find().sort({ createdAt: -1 });
 
-    // Aggregate photo counts for each event
-    const photoCounts = await Photo.aggregate([
-      {
-        $group: {
-          _id: "$eventId",
-          count: { $sum: 1 },
-        },
-      },
-    ]);
-
     const countMap = {};
-    photoCounts.forEach((item) => {
-      countMap[item._id] = item.count;
-    });
+    try {
+      const photoCounts = await Photo.aggregate([
+        {
+          $group: {
+            _id: "$eventId",
+            count: { $sum: 1 },
+          },
+        },
+      ]);
+
+      if (Array.isArray(photoCounts)) {
+        photoCounts.forEach((item) => {
+          if (item && item._id) {
+            countMap[item._id] = item.count;
+          }
+        });
+      }
+    } catch (aggErr) {
+      console.warn("Photo aggregation count notice:", aggErr.message);
+    }
 
     const enrichedEvents = await Promise.all(
       events.map(async (ev) => {
         if (!ev.accessToken) {
           ev.accessToken = generateAccessToken();
-          await ev.save();
+          await ev.save().catch(() => {});
         }
         return {
           ...ev.toObject(),
@@ -158,7 +178,6 @@ async function listEvents(req, res) {
         };
       })
     );
-
 
     res.json({
       success: true,
