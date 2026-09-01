@@ -1,7 +1,7 @@
 {
   "name": "wedding-photo-finder-server",
   "version": "1.0.0",
-  "description": "Backend for Pixora - Express + MongoDB + ImageKit",
+  "description": "Backend for Pixora - Express + MongoDB + AWS S3",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
@@ -9,13 +9,14 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1123.0",
+    "@aws-sdk/s3-request-presigner": "^3.1123.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "firebase-admin": "^14.3.0",
     "firebase-functions": "^7.3.2",
     "googleapis": "^176.0.0",
-    "imagekit": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.24.3",
     "multer": "^2.2.0",

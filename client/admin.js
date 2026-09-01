@@ -224,7 +224,7 @@ function showToast(message, type = "success") {
 }
 
 // ==========================================================================
-// Storage Plan Component Controller (Live ImageKit.io CDN)
+// Storage Plan Component Controller (Live AWS S3 Cloud Storage)
 // ==========================================================================
 let currentStorageData = null;
 
@@ -323,11 +323,18 @@ function renderStoragePlan(data) {
       : `${data.storageUsedMB || 0} MB`;
 
   const storageLimitDisplay =
-    data.storageLimitGB !== undefined
-      ? `${data.storageLimitGB} GB`
-      : data.storageLimitTB !== undefined
+    data.storageLimitTB !== undefined
       ? `${data.storageLimitTB} TB`
-      : "20 GB";
+      : data.storageLimitGB !== undefined
+      ? (data.storageLimitGB >= 1024 ? `${(data.storageLimitGB / 1024).toFixed(0)} TB` : `${data.storageLimitGB} GB`)
+      : "1 TB";
+
+  const remainingCapacityText =
+    data.storageRemainingTB !== undefined && data.storageRemainingTB >= 0.1
+      ? `${data.storageRemainingTB} TB remaining`
+      : data.storageRemainingGB !== undefined
+      ? (data.storageRemainingGB >= 1024 ? `${(data.storageRemainingGB / 1024).toFixed(1)} TB remaining` : `${data.storageRemainingGB} GB remaining`)
+      : "1 TB capacity";
 
   let barClass = "";
   if (data.isFull || percentage >= 100) {
@@ -344,21 +351,21 @@ function renderStoragePlan(data) {
   container.innerHTML = `
     <div class="storage-card-header">
       <div class="storage-header-left">
-        <div class="storage-icon-badge" title="ImageKit.io Media CDN">
+        <div class="storage-icon-badge" title="AWS S3 Cloud Storage">
           ${getIcon("camera")}
         </div>
-        <h2 class="storage-card-title">${data.planName || "ImageKit.io (20 GB Free Plan)"}</h2>
+        <h2 class="storage-card-title">${data.planName || "AWS S3 Private Storage (1 TB Plan)"}</h2>
       </div>
-      <button type="button" class="storage-upgrade-btn" id="storage-upgrade-action" title="Open ImageKit Developer Dashboard">
+      <button type="button" class="storage-upgrade-btn" id="storage-upgrade-action" title="Open AWS S3 Management Console">
         ${getIcon("sparkles")}
-        <span>ImageKit CDN</span>
+        <span>AWS S3</span>
       </button>
     </div>
 
     <div class="storage-stat-row">
       <div class="storage-percentage-val">${displayPercentage}%</div>
       <div class="storage-photos-desc">
-        <strong>${photoCount.toLocaleString()}</strong> photos uploaded (${data.storageRemainingGB ? data.storageRemainingGB + ' GB remaining' : '20 GB capacity'})
+        <strong>${photoCount.toLocaleString()}</strong> photos uploaded (${remainingCapacityText})
       </div>
       ${
         data.isFull
@@ -377,13 +384,13 @@ function renderStoragePlan(data) {
       <div class="storage-meta-badges">
         <span class="storage-live-pill">
           <span class="storage-live-dot"></span>
-          Live ImageKit CDN Sync
+          Live AWS S3 Sync
         </span>
         <span class="storage-meta-item">
           Storage: <strong>${storageUsedDisplay}</strong> / ${storageLimitDisplay}
         </span>
       </div>
-      <button type="button" class="storage-sync-btn" id="storage-sync-btn" title="Fetch live usage from ImageKit">
+      <button type="button" class="storage-sync-btn" id="storage-sync-btn" title="Fetch live usage from AWS S3">
         ${getIcon("refresh")}
         <span>Sync</span>
       </button>
@@ -391,7 +398,7 @@ function renderStoragePlan(data) {
   `;
 
   document.getElementById("storage-upgrade-action")?.addEventListener("click", () => {
-    window.open(data.upgradeUrl || "https://imagekit.io/dashboard/developer", "_blank", "noopener,noreferrer");
+    window.open(data.upgradeUrl || "https://s3.console.aws.amazon.com/s3/buckets/pixora-images-2026?region=ap-south-1", "_blank", "noopener,noreferrer");
   });
 
   document.getElementById("storage-sync-btn")?.addEventListener("click", () => {
@@ -1148,7 +1155,7 @@ function openDeleteModal(eventId, eventName) {
 
   if (!modal || !messageEl || !confirmBtn) return;
 
-  messageEl.innerHTML = `Are you sure you want to permanently delete event <strong>"${eventName}"</strong> (<code>${eventId}</code>)?<br/><br/>All uploaded photos will be removed from Google Drive cloud storage and freed from your storage quota.`;
+  messageEl.innerHTML = `Are you sure you want to permanently delete event <strong>"${eventName}"</strong> (<code>${eventId}</code>)?<br/><br/>All uploaded photos will be removed from AWS S3 cloud storage and freed from your storage quota.`;
 
   confirmBtn.disabled = false;
   confirmBtn.innerHTML = `${getIcon("trash")} <span>Delete Event</span>`;

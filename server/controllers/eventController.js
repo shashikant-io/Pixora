@@ -6,7 +6,7 @@ const {
   bulkDeleteImages,
   deleteFolder,
   invalidateStorageUsageCache,
-} = require("../services/imagekitService");
+} = require("../services/s3Service");
 
 function generateAccessToken() {
   return "tok_" + crypto.randomBytes(12).toString("hex");
@@ -207,15 +207,15 @@ async function deleteEvent(req, res) {
     // 1. Find all photos belonging to this event
     const photos = await Photo.find({ eventId });
     const fileIds = photos
-      .map((p) => p.fileId || p.imageKitFileId)
+      .map((p) => p.fileId || p.filePath)
       .filter(Boolean);
 
-    // 2. Delete all photos from Google Drive
+    // 2. Delete all photos and thumbnails from AWS S3
     if (fileIds.length > 0) {
       await bulkDeleteImages(fileIds);
     }
 
-    // 3. Delete the event folder from Google Drive
+    // 3. Delete the event prefix folder from AWS S3 (events/${eventId}/)
     await deleteFolder(eventId);
 
     // 4. Delete photo records from MongoDB

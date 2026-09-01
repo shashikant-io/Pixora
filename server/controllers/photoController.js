@@ -7,14 +7,19 @@ const {
   uploadImage,
   deleteImage,
   invalidateStorageUsageCache,
-} = require("../services/imagekitService");
+  getSignedViewUrl,
+  getSignedDownloadUrl,
+  resolvePhotoUrls,
+  getObjectStream,
+  getStorageUsage,
+} = require("../services/s3Service");
 const { getFileStream: getDriveFileStream } = require("../services/googleDriveService");
 const { processPhotoFaces } = require("../services/faceService");
 
 const LOCAL_UPLOADS_ROOT = path.join(__dirname, "../uploads/events");
 
 /**
- * Resolves the underlying photo location across all storage providers
+ * Resolves the underlying photo location across storage providers
  */
 async function resolvePhotoSource(fileId) {
   if (!fileId) return null;
@@ -23,7 +28,7 @@ async function resolvePhotoSource(fileId) {
   let photo = null;
   try {
     photo = await Photo.findOne({
-      $or: [{ fileId }, { imageKitFileId: fileId }],
+      $or: [{ fileId }, { filePath: fileId }],
     }).lean();
 
     if (!photo && fileId.match(/^[0-9a-fA-F]{24}$/)) {
@@ -33,19 +38,37 @@ async function resolvePhotoSource(fileId) {
     console.warn(`[Photo Resolver] DB lookup warning for ${fileId}:`, dbErr.message);
   }
 
-  // 2. If photo is ImageKit / remote CDN URL
+  // 2. AWS S3 Storage Provider (Private S3 Bucket)
+  if (photo && (photo.storageProvider === "s3" || (photo.filePath && photo.filePath.startsWith("events/")))) {
+    const s3Key = photo.filePath || photo.fileId || fileId;
+    const thumbKey = photo.thumbnailUrl && !photo.thumbnailUrl.startsWith("http")
+      ? photo.thumbnailUrl
+      : (s3Key.includes("/photos/") ? s3Key.replace("/photos/", "/thumbnails/") : `thumbnails/${s3Key}`);
+
+    return {
+      type: "s3",
+      fileId: s3Key,
+      thumbKey: thumbKey,
+      mimeType: photo.mimeType || "image/jpeg",
+      size: photo.fileSize,
+      fileName: path.basename(s3Key),
+    };
+  }
+
+  // 3. Fallback for remote HTTP/HTTPS URLs (if any exist)
   if (photo && photo.imageUrl && (photo.imageUrl.startsWith("http://") || photo.imageUrl.startsWith("https://"))) {
     return {
-      type: "imagekit",
+      type: "remote",
       url: photo.imageUrl,
-      thumbnailUrl: photo.thumbnailUrl || `${photo.imageUrl}?tr=h-350,w-350,q-80,c-maintain_ratio`,
-      downloadUrl: photo.downloadUrl || `${photo.imageUrl}?ik-attachment=true`,
+      thumbnailUrl: photo.thumbnailUrl || photo.imageUrl,
+      downloadUrl: photo.downloadUrl || photo.imageUrl,
+      fileId: photo.fileId || fileId,
       mimeType: photo.mimeType || "image/jpeg",
       fileName: photo.filePath ? path.basename(photo.filePath) : `photo_${fileId}.jpg`,
     };
   }
 
-  // 3. Search local disk storage in server/uploads/events
+  // 4. Search local disk storage in server/uploads/events
   if (fs.existsSync(LOCAL_UPLOADS_ROOT)) {
     const eventDirs = fs.readdirSync(LOCAL_UPLOADS_ROOT);
     for (const ed of eventDirs) {
@@ -68,7 +91,7 @@ async function resolvePhotoSource(fileId) {
     }
   }
 
-  // 4. Check explicit photo.filePath on disk
+  // 5. Check explicit photo.filePath on disk
   if (photo && photo.filePath && fs.existsSync(photo.filePath)) {
     const stat = fs.statSync(photo.filePath);
     return {
@@ -80,7 +103,7 @@ async function resolvePhotoSource(fileId) {
     };
   }
 
-  // 5. Try Google Drive Service Stream as fallback
+  // 6. Try Google Drive Service Stream as fallback
   try {
     const driveResult = await getDriveFileStream(fileId);
     if (driveResult && driveResult.stream) {
@@ -100,6 +123,10 @@ async function resolvePhotoSource(fileId) {
   return null;
 }
 
+/**
+ * Handles photo uploads: validates input, extracts face embeddings,
+ * uploads to private AWS S3 bucket with SSE-S3 encryption, and persists S3 keys in DB.
+ */
 async function uploadPhoto(req, res) {
   let stage = "validation";
   try {
@@ -133,6 +160,17 @@ async function uploadPhoto(req, res) {
       });
     }
 
+    // Storage quota validation (enforcing 1024 GB / 1 TB maximum quota)
+    const usage = await getStorageUsage(false);
+    if (usage && usage.totalQuotaBytes && (usage.mediaLibraryStorageBytes + req.file.buffer.length > usage.totalQuotaBytes)) {
+      return res.status(403).json({
+        success: false,
+        stage: "validation",
+        code: "STORAGE_QUOTA_EXCEEDED",
+        message: `Storage quota exceeded (${usage.storageLimitTB || 1} TB limit reached). Delete old photos to free up space.`,
+      });
+    }
+
     // Stage 1: Face Detection & AI Embedding Extraction (Buffalo ONNX)
     stage = "indexing";
     let faces = [];
@@ -150,29 +188,28 @@ async function uploadPhoto(req, res) {
       console.warn(`[AI Engine] Face extraction warning for "${req.file.originalname}":`, faceErr.message);
     }
 
-
-    // Stage 2: Direct Upload to ImageKit CDN
+    // Stage 2: Direct Upload to AWS S3 (SSE-S3 encrypted, private)
     stage = "storage";
     const uploaded = await uploadImage(
       req.file.buffer,
       req.file.originalname,
-      eventId
+      eventId,
+      req.file.mimetype || "image/jpeg"
     );
 
-    // Stage 3: Database Persistence
+    // Stage 3: Database Persistence (stores S3 object keys, NOT expiring URLs)
     stage = "persistence";
     let photo = await Photo.findOne({ eventId, fileId: uploaded.fileId });
 
     if (!photo) {
       photo = await Photo.create({
         eventId,
-        storageProvider: "imagekit",
-        fileId: uploaded.fileId,
-        imageKitFileId: uploaded.fileId,
-        imageUrl: uploaded.url,
-        thumbnailUrl: uploaded.thumbnailUrl,
-        downloadUrl: uploaded.downloadUrl,
-        filePath: uploaded.filePath,
+        storageProvider: "s3",
+        fileId: uploaded.fileId, // S3 Object Key
+        imageUrl: uploaded.filePath, // S3 Object Key
+        thumbnailUrl: uploaded.thumbKey, // S3 Thumbnail Key
+        downloadUrl: uploaded.filePath, // S3 Object Key
+        filePath: uploaded.filePath, // S3 Object Key
         fileSize: uploaded.size,
         mimeType: req.file.mimetype || "image/jpeg",
         faces,
@@ -184,15 +221,16 @@ async function uploadPhoto(req, res) {
 
     invalidateStorageUsageCache();
 
+    // Return freshly generated presigned URLs in the response for instant frontend display
     res.json({
       success: true,
       stage: "completed",
       photo: {
         id: photo._id,
         fileId: photo.fileId,
-        imageUrl: photo.imageUrl,
-        thumbnailUrl: photo.thumbnailUrl,
-        downloadUrl: photo.downloadUrl,
+        imageUrl: uploaded.url,
+        thumbnailUrl: uploaded.thumbnailUrl,
+        downloadUrl: uploaded.downloadUrl,
         storageProvider: photo.storageProvider,
         faceCount: photo.faces ? photo.faces.length : 0,
         fileSize: photo.fileSize,
@@ -210,27 +248,52 @@ async function uploadPhoto(req, res) {
   }
 }
 
+/**
+ * Returns all photos for an event with fresh presigned GET URLs for private S3 storage
+ */
 async function getPhotosByEvent(req, res) {
   try {
     const { eventId } = req.params;
     const photos = await Photo.find({ eventId }).sort({ createdAt: -1 });
 
-    res.json({
-      success: true,
-      count: photos.length,
-      photos: photos.map((p) => {
-        const fileId = p.fileId || p.imageKitFileId;
+    const photoList = await Promise.all(
+      photos.map(async (p) => {
+        const fileId = p.fileId || p.filePath || p._id.toString();
+
+        // If stored in S3, generate fresh presigned GET URLs
+        if (p.storageProvider === "s3" || (p.filePath && p.filePath.startsWith("events/"))) {
+          const urls = await resolvePhotoUrls(p);
+          return {
+            id: p._id,
+            fileId: fileId,
+            imageUrl: urls.imageUrl,
+            thumbnailUrl: urls.thumbnailUrl,
+            downloadUrl: urls.downloadUrl,
+            storageProvider: "s3",
+            faceCount: p.faces ? p.faces.length : 0,
+            createdAt: p.createdAt,
+          };
+        }
+
+        // Fallback for legacy remote or local files
         const isRemote = p.imageUrl && p.imageUrl.startsWith("http");
         return {
           id: p._id,
           fileId: fileId,
-          imageUrl: isRemote ? p.imageUrl : `/api/photos/file/${fileId}`,
-          thumbnailUrl: isRemote ? (p.thumbnailUrl || p.imageUrl) : `/api/photos/file/${fileId}?size=thumbnail`,
-          downloadUrl: isRemote ? (p.downloadUrl || `${p.imageUrl}?ik-attachment=true`) : `/api/photos/download/${fileId}`,
+          imageUrl: isRemote ? p.imageUrl : `/api/photos/file/${encodeURIComponent(fileId)}`,
+          thumbnailUrl: isRemote ? (p.thumbnailUrl || p.imageUrl) : `/api/photos/file/${encodeURIComponent(fileId)}?size=thumbnail`,
+          downloadUrl: isRemote ? (p.downloadUrl || p.imageUrl) : `/api/photos/download/${encodeURIComponent(fileId)}`,
+          storageProvider: p.storageProvider || "local",
           faceCount: p.faces ? p.faces.length : 0,
           createdAt: p.createdAt,
         };
-      }),
+      })
+    );
+
+    res.json({
+      success: true,
+      count: photoList.length,
+      photos: photoList,
     });
   } catch (error) {
     console.error("Fetch photos error:", error);
@@ -240,7 +303,7 @@ async function getPhotosByEvent(req, res) {
 
 /**
  * Universal photo streaming / proxy endpoint
- * Supports full resolution & on-the-fly thumbnail resizing
+ * Generates a presigned view URL for private S3 or streams local file
  */
 async function streamPhoto(req, res) {
   try {
@@ -260,9 +323,23 @@ async function streamPhoto(req, res) {
       });
     }
 
-    // Remote ImageKit CDN
-    if (source.type === "imagekit") {
-      const targetUrl = isThumbnail ? source.thumbnailUrl : source.url;
+    // Remote AWS S3 Storage: Redirect to a fresh presigned GET URL
+    if (source.type === "s3") {
+      const targetKey = isThumbnail ? (source.thumbKey || source.fileId) : source.fileId;
+      try {
+        const signedUrl = await getSignedViewUrl(targetKey, 3600);
+        return res.redirect(302, signedUrl);
+      } catch (err) {
+        // Fallback to S3 stream proxy
+        const s3StreamObj = await getObjectStream(targetKey);
+        res.setHeader("Content-Type", s3StreamObj.contentType || "image/jpeg");
+        return s3StreamObj.stream.pipe(res);
+      }
+    }
+
+    // Remote URL
+    if (source.type === "remote") {
+      const targetUrl = isThumbnail ? (source.thumbnailUrl || source.url) : source.url;
       return res.redirect(302, targetUrl);
     }
 
@@ -315,6 +392,7 @@ async function streamPhoto(req, res) {
 
 /**
  * Universal photo attachment download endpoint
+ * Redirects to a presigned S3 download URL with Content-Disposition
  */
 async function downloadPhoto(req, res) {
   try {
@@ -333,7 +411,20 @@ async function downloadPhoto(req, res) {
       });
     }
 
-    if (source.type === "imagekit") {
+    if (source.type === "s3") {
+      try {
+        const signedUrl = await getSignedDownloadUrl(source.fileId, source.fileName, 3600);
+        return res.redirect(302, signedUrl);
+      } catch (err) {
+        console.warn(`[AWS S3] Fallback download streaming for "${source.fileId}":`, err.message);
+        const s3StreamObj = await getObjectStream(source.fileId);
+        res.setHeader("Content-Type", s3StreamObj.contentType || "application/octet-stream");
+        res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(source.fileName)}"`);
+        return s3StreamObj.stream.pipe(res);
+      }
+    }
+
+    if (source.type === "remote") {
       return res.redirect(302, source.downloadUrl);
     }
 

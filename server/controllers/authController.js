@@ -5,7 +5,7 @@ const jwt = require("jsonwebtoken");
 const Otp = require("../models/Otp");
 const User = require("../models/User");
 const Event = require("../models/Event");
-const { sendOtpEmail } = require("../services/emailService");
+const { sendOtpEmail, sendWelcomeEmail } = require("../services/emailService");
 const {
   createOrGetFirebaseSession,
   verifyFirebaseIdToken,
@@ -439,19 +439,45 @@ async function googleCustomerLogin(req, res) {
     const picture = fbResult.picture || null;
     const firebaseUid = fbResult.uid || `google_${Buffer.from(email).toString("hex").slice(0, 16)}`;
 
-    // 3. Upsert User record in MongoDB
-    await User.findOneAndUpdate(
-      { email },
-      {
+    // 3. Detect whether user is a NEW user or existing user
+    let existingUser = await User.findOne({ email });
+    const isNewUser = !existingUser;
+
+    if (isNewUser) {
+      // First-time signup: create User record with welcome tracking
+      await User.create({
         email,
         role: "customer",
         firebaseUid,
         name,
         picture,
         lastLoginAt: new Date(),
-      },
-      { upsert: true, new: true }
-    );
+        welcomeSent: true,
+        welcomeSentAt: new Date(),
+      });
+
+      // Dispatch welcome message asynchronously (never blocks authentication)
+      sendWelcomeEmail(email, name)
+        .then(() => {
+          console.log(`[Google Auth] Welcome email delivered successfully to ${email}`);
+        })
+        .catch((mailErr) => {
+          console.error(`[Google Auth] Welcome email delivery failed for ${email}:`, mailErr.message);
+        });
+    } else {
+      // Existing user login: update session details, do NOT send welcome email
+      await User.updateOne(
+        { email },
+        {
+          $set: {
+            firebaseUid,
+            name,
+            picture,
+            lastLoginAt: new Date(),
+          },
+        }
+      );
+    }
 
     // 4. Mint scoped session token
     const jwtSecret = process.env.JWT_SECRET || "photo_finder_jwt_secret_key_2026_luxury_secure";

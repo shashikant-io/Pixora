@@ -43,8 +43,8 @@ async function sendOtpEmail(toEmail, otpCode, options = {}) {
   const isAdmin = role === "admin";
   const emailTitle = isAdmin ? "Photographer Admin Sign In" : `Find Your Photos — ${eventName}`;
   const subject = isAdmin
-    ? `🔐 Pixora Admin Code: ${otpCode}`
-    : `📸 Your Pixora Event Code: ${otpCode}`;
+    ? ` Pixora Admin Code: ${otpCode}`
+    : ` Your Pixora Event Code: ${otpCode}`;
 
   const messageText = isAdmin
     ? "You requested access to your Pixora Photographer Dashboard. Enter the one-time passcode below to verify your session:"

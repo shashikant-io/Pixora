@@ -30,6 +30,14 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  welcomeSent: {
+    type: Boolean,
+    default: false,
+  },
+  welcomeSentAt: {
+    type: Date,
+    default: null,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

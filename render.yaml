@@ -12,12 +12,18 @@ services:
         value: 10000
       - key: MONGODB_URI
         sync: false
-      - key: IMAGEKIT_PUBLIC_KEY
+      - key: AWS_ACCESS_KEY_ID
         sync: false
-      - key: IMAGEKIT_PRIVATE_KEY
+      - key: AWS_SECRET_ACCESS_KEY
         sync: false
-      - key: IMAGEKIT_URL_ENDPOINT
+      - key: AWS_REGION
+        value: ap-south-1
+      - key: AWS_S3_BUCKET
         sync: false
+      - key: AWS_CLOUDFRONT_URL
+        sync: false
+      - key: AWS_S3_STORAGE_LIMIT_GB
+        value: "1024"
       - key: EMAIL_USER
         sync: false
       - key: EMAIL_PASS

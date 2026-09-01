@@ -2,6 +2,7 @@ const Photo = require("../models/Photo");
 const Event = require("../models/Event");
 const { findMatchingPhotos, processSelfieFace } = require("../services/faceService");
 const { isLoaded, initModels } = require("../faceRecognition/modelLoader");
+const { resolvePhotoUrls } = require("../services/s3Service");
 
 async function searchByFace(req, res) {
   try {
@@ -23,42 +24,31 @@ async function searchByFace(req, res) {
       try {
         await initModels();
       } catch (mErr) {
-        console.error("[FaceSearch] Model initialization notice:", mErr.message);
+        console.warn("[Face Engine] Initialization warning:", mErr.message);
       }
     }
 
-    console.log("[SearchByFace] Received search request:", {
-      eventId,
-      fileSize: req.file ? `${(req.file.size / 1024).toFixed(1)} KB` : "none",
-      mimeType: req.file?.mimetype,
-      originalName: req.file?.originalname,
-      modelsLoaded: isLoaded(),
-    });
-
-    // Buffalo ONNX face extraction directly from image buffer in memory
+    // Process guest selfie with local Buffalo ONNX
+    let guestEmbedding = null;
     try {
       const selfieResult = await processSelfieFace(req.file.buffer);
       if (selfieResult && selfieResult.embedding) {
         guestEmbedding = selfieResult.embedding;
-        console.log("[SearchByFace] Face detected successfully. Confidence:", selfieResult.score, "Face count:", selfieResult.faceCount);
       }
-    } catch (faceErr) {
-      console.warn("[SearchByFace] Buffalo ONNX face detection notice:", faceErr.message);
-      // If server detection couldn't find face, check client provided embedding
-      if (embedding) {
-        try {
-          guestEmbedding = JSON.parse(embedding);
-        } catch (e) {
-          guestEmbedding = null;
-        }
-      }
+    } catch (selfieErr) {
+      console.error("[Face Engine] Selfie extraction error:", selfieErr.message);
+      return res.status(422).json({
+        success: false,
+        code: "NO_FACE_DETECTED",
+        message: "No face could be detected in the provided selfie. Ensure your face is well-lit and facing the camera directly.",
+      });
     }
 
-
-    if (!Array.isArray(guestEmbedding) || guestEmbedding.length === 0) {
-      return res.status(400).json({
+    if (!guestEmbedding || !Array.isArray(guestEmbedding) || guestEmbedding.length !== 512) {
+      return res.status(422).json({
         success: false,
-        message: "No face detected in selfie. Please upload a clear photo showing your face.",
+        code: "NO_FACE_DETECTED",
+        message: "Could not detect a clear face in the uploaded selfie. Please try again with good lighting.",
       });
     }
 
@@ -80,20 +70,32 @@ async function searchByFace(req, res) {
       });
     }
 
-    res.json({
-      success: true,
-      matches: matches.map((m) => {
+    const formattedMatches = await Promise.all(
+      matches.map(async (m) => {
         const photo = m.photo;
-        const fileId = photo.fileId || photo.imageKitFileId || photo._id.toString();
-        const isRemote = photo.imageUrl && (photo.imageUrl.startsWith("http://") || photo.imageUrl.startsWith("https://"));
+        const fileId = photo.fileId || photo.filePath || photo._id.toString();
 
-        const imageUrl = isRemote ? photo.imageUrl : `/api/photos/file/${fileId}`;
+        if (photo.storageProvider === "s3" || (photo.filePath && photo.filePath.startsWith("events/"))) {
+          const urls = await resolvePhotoUrls(photo);
+          return {
+            id: photo._id,
+            fileId,
+            imageUrl: urls.imageUrl,
+            thumbnailUrl: urls.thumbnailUrl,
+            downloadUrl: urls.downloadUrl,
+            similarity: m.similarity !== undefined ? m.similarity : Number((1 - m.distance).toFixed(4)),
+            distance: m.distance,
+          };
+        }
+
+        const isRemote = photo.imageUrl && (photo.imageUrl.startsWith("http://") || photo.imageUrl.startsWith("https://"));
+        const imageUrl = isRemote ? photo.imageUrl : `/api/photos/file/${encodeURIComponent(fileId)}`;
         const thumbnailUrl = isRemote
-          ? (photo.thumbnailUrl || `${photo.imageUrl}?tr=h-350,w-350,q-80,c-maintain_ratio`)
-          : `/api/photos/file/${fileId}?size=thumbnail`;
+          ? (photo.thumbnailUrl || photo.imageUrl)
+          : `/api/photos/file/${encodeURIComponent(fileId)}?size=thumbnail`;
         const downloadUrl = isRemote
-          ? (photo.downloadUrl || `${photo.imageUrl}?ik-attachment=true`)
-          : `/api/photos/download/${fileId}`;
+          ? (photo.downloadUrl || photo.imageUrl)
+          : `/api/photos/download/${encodeURIComponent(fileId)}`;
 
         return {
           id: photo._id,
@@ -104,7 +106,12 @@ async function searchByFace(req, res) {
           similarity: m.similarity !== undefined ? m.similarity : Number((1 - m.distance).toFixed(4)),
           distance: m.distance,
         };
-      }),
+      })
+    );
+
+    res.json({
+      success: true,
+      matches: formattedMatches,
     });
   } catch (error) {
     console.error("Search by face error:", error);

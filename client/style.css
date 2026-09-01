@@ -660,7 +660,7 @@ select option {
 }
 
 /* ==========================================================================
-   Storage Plan Card (Live ImageKit CDN / Cloud Storage)
+   Storage Plan Card (Live AWS S3 Cloud Storage)
    ========================================================================== */
 .storage-plan-card {
   position: relative;

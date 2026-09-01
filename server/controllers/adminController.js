@@ -1,9 +1,9 @@
 const Photo = require("../models/Photo");
-const { getStorageUsage } = require("../services/imagekitService");
+const { getStorageUsage } = require("../services/s3Service");
 
-const DEFAULT_STORAGE_LIMIT_GB = 20; // 20 GB ImageKit Tier
+const DEFAULT_STORAGE_LIMIT_GB = parseFloat(process.env.AWS_S3_STORAGE_LIMIT_GB) || 1024; // 1024 GB (1 TB) AWS S3 Tier
 const DEFAULT_STORAGE_LIMIT_BYTES = DEFAULT_STORAGE_LIMIT_GB * 1024 * 1024 * 1024;
-const DEFAULT_ESTIMATED_PHOTO_LIMIT = Math.round((DEFAULT_STORAGE_LIMIT_GB * 1024) / 4); // ~5,000 photos
+const DEFAULT_ESTIMATED_PHOTO_LIMIT = Math.round((DEFAULT_STORAGE_LIMIT_GB * 1024) / 4); // ~262,000 photos
 
 async function getStorageStats(req, res) {
   try {
@@ -25,10 +25,12 @@ async function getStorageStats(req, res) {
     const storageLimitMB = Math.round(storageLimitBytes / (1024 * 1024));
     const storageUsedGB = parseFloat((storageUsedBytes / (1024 * 1024 * 1024)).toFixed(3));
     const storageLimitGB = parseFloat((storageLimitBytes / (1024 * 1024 * 1024)).toFixed(1));
+    const storageLimitTB = parseFloat((storageLimitGB / 1024).toFixed(2));
 
     const remainingBytes = Math.max(0, storageLimitBytes - storageUsedBytes);
     const remainingMB = parseFloat((remainingBytes / (1024 * 1024)).toFixed(2));
     const remainingGB = parseFloat((remainingBytes / (1024 * 1024 * 1024)).toFixed(3));
+    const remainingTB = parseFloat((remainingGB / 1024).toFixed(2));
 
     let photoLimitEstimated = DEFAULT_ESTIMATED_PHOTO_LIMIT;
     if (photoCount > 5 && storageUsedBytes > 0) {
@@ -41,6 +43,11 @@ async function getStorageStats(req, res) {
     const isFull = storageUsedBytes >= storageLimitBytes;
     const isNearFull = storagePercentage >= 90;
 
+    const fallbackPlan =
+      storageLimitGB >= 1024
+        ? `AWS S3 Private Storage (${(storageLimitGB / 1024).toFixed(0)} TB Plan)`
+        : `AWS S3 Private Storage (${storageLimitGB} GB Plan)`;
+
     res.json({
       success: true,
       storageUsed: storageUsedBytes,
@@ -49,23 +56,25 @@ async function getStorageStats(req, res) {
       storageLimitMB,
       storageUsedGB,
       storageLimitGB,
+      storageLimitTB,
       storageRemainingBytes: remainingBytes,
       storageRemainingMB: remainingMB,
       storageRemainingGB: remainingGB,
+      storageRemainingTB: remainingTB,
       storagePercentage,
       photoCount,
       photoLimitEstimated,
       isFull,
       isNearFull,
-      planName: `ImageKit.io CDN (${storageLimitGB} GB Free Plan)`,
-      upgradeUrl: "https://imagekit.io/dashboard/developer",
+      planName: usageData.planName || fallbackPlan,
+      upgradeUrl: "https://s3.console.aws.amazon.com/s3/buckets/pixora-images-2026?region=ap-south-1",
       lastUpdated: usageData.fetchedAt || new Date().toISOString(),
     });
   } catch (error) {
     console.error("Error retrieving storage stats:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to retrieve storage statistics from ImageKit.",
+      message: "Failed to retrieve storage statistics from AWS S3.",
       error: error.message,
     });
   }
