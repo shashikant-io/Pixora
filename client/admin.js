@@ -880,7 +880,7 @@ function resolveGuestUrl(ev) {
       const card = document.createElement("div");
       card.className = "event-card";
       card.innerHTML = `
-        <div>
+        <div class="event-card-body">
           <div class="event-card-top">
             <div>
               <h3 class="event-card-name">${ev.name}</h3>
@@ -925,17 +925,15 @@ function resolveGuestUrl(ev) {
           </div>
         </div>
 
-        <div>
-          <div class="event-card-actions">
-            <button type="button" class="btn btn-secondary btn-sm btn-view-qr" data-id="${ev.eventId}">
-              ${getIcon("download")}
-              <span>QR Code</span>
-            </button>
-            <button type="button" class="btn btn-danger btn-sm btn-delete-event" data-id="${ev.eventId}" data-name="${encodeURIComponent(ev.name)}">
-              ${getIcon("trash")}
-              <span>Delete</span>
-            </button>
-          </div>
+        <div class="event-card-actions">
+          <button type="button" class="btn btn-secondary btn-sm btn-view-qr" data-id="${ev.eventId}">
+            ${getIcon("download")}
+            <span>QR Code</span>
+          </button>
+          <button type="button" class="btn btn-danger btn-sm btn-delete-event" data-id="${ev.eventId}" data-name="${encodeURIComponent(ev.name)}">
+            ${getIcon("trash")}
+            <span>Delete</span>
+          </button>
         </div>
       `;
 

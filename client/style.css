@@ -106,11 +106,15 @@
    ========================================================================== */
 *, *::before, *::after {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html, body {
   margin: 0;
   padding: 0;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 /* Ember Dusk - Smooth Aura Background (Zero Banding & High GPU Performance) */
@@ -1339,22 +1343,72 @@ select option {
 }
 
 .event-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 1.35rem;
-  box-shadow: var(--shadow-sm);
+  position: relative;
+  background: linear-gradient(165deg, rgba(30, 27, 24, 0.95) 0%, rgba(20, 18, 16, 0.98) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 18px;
+  padding: 0;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 12px 40px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 1rem;
-  transition: all 0.2s ease;
+  gap: 0;
+  transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+}
+
+/* Decorative top gradient strip */
+.event-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-primary) 0%, #c9a55a 50%, var(--accent-primary) 100%);
+  opacity: 0.85;
+  transition: opacity 0.35s ease;
+}
+
+/* Decorative radial glow */
+.event-card::after {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, rgba(201, 165, 90, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  transition: opacity 0.35s ease;
 }
 
 .event-card:hover {
-  border-color: var(--border-medium);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  border-color: rgba(201, 165, 90, 0.2);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 20px 60px rgba(0, 0, 0, 0.2),
+    0 0 40px rgba(201, 165, 90, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transform: translateY(-4px);
+}
+
+.event-card:hover::before {
+  opacity: 1;
+}
+
+.event-card:hover::after {
+  opacity: 1.5;
+}
+
+/* Card body padding */
+.event-card-body {
+  padding: 1.5rem 1.35rem 1.15rem;
+  position: relative;
+  z-index: 1;
 }
 
 .event-card-top {
@@ -1365,58 +1419,67 @@ select option {
 }
 
 .event-card-name {
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: #ffffff;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.35rem;
+  letter-spacing: -0.01em;
+  background: linear-gradient(135deg, #ffffff 0%, #e8d5b5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .event-id-badge {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--accent-primary);
-  background: var(--accent-primary-soft);
-  border: 1px solid var(--accent-primary-border);
-  padding: 0.15rem 0.5rem;
-  border-radius: var(--radius-xs);
-  letter-spacing: 0.02em;
+  background: rgba(201, 165, 90, 0.1);
+  border: 1px solid rgba(201, 165, 90, 0.18);
+  padding: 0.2rem 0.6rem;
+  border-radius: 8px;
+  letter-spacing: 0.03em;
   white-space: nowrap;
+  backdrop-filter: blur(6px);
 }
 
 .event-metadata-list {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  font-size: 0.835rem;
+  gap: 0.4rem;
+  font-size: 0.82rem;
   color: var(--text-secondary);
+  margin-top: 0.1rem;
 }
 
 .event-metadata-item {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.5rem;
 }
 
 .event-metadata-item svg {
   width: 14px;
   height: 14px;
-  color: var(--text-muted);
+  color: rgba(201, 165, 90, 0.6);
   flex-shrink: 0;
 }
 
+/* Photo count pill - redesigned */
 .event-photo-count-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.785rem;
+  gap: 0.4rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: #e2e8f0;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--border-subtle);
-  padding: 0.2rem 0.6rem;
-  border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.3rem 0.75rem;
+  border-radius: 10px;
   width: fit-content;
+  backdrop-filter: blur(8px);
 }
 
 .event-photo-count-pill svg {
@@ -1425,23 +1488,26 @@ select option {
   color: var(--accent-primary);
 }
 
+/* Guest access box - glassmorphism */
 .guest-access-box {
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 0.65rem 0.85rem;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.25) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 0.75rem 0.95rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  backdrop-filter: blur(12px);
 }
 
 .guest-access-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(201, 165, 90, 0.7);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.15rem;
 }
 
 .guest-access-actions {
@@ -1450,14 +1516,17 @@ select option {
   gap: 0.35rem;
 }
 
+/* Card footer / actions - redesigned */
 .event-card-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border-subtle);
+  padding: 0.85rem 1.35rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
   gap: 0.5rem;
+  background: rgba(0, 0, 0, 0.15);
 }
+
 
 /* QR Code Section */
 .qr-preview-wrapper {
@@ -4657,3 +4726,750 @@ select option {
   }
 }
 
+/* ==========================================================================
+   COMPREHENSIVE MOBILE RESPONSIVENESS — Full Coverage
+   ========================================================================== */
+
+/* --- iOS Safari: Fix background-attachment:fixed causing repaint jank --- */
+@media (max-width: 1024px) {
+  body {
+    background-attachment: scroll;
+  }
+}
+
+/* --- Touch-action optimization for interactive elements --- */
+button, .btn, a, input, select, textarea, .role-selection-card,
+.event-category-card, .platform-feature-card, .matched-photo-card,
+.camera-icon-btn, .camera-shutter-btn {
+  touch-action: manipulation;
+}
+
+/* --- Safe area insets for notched devices (iPhone X+) --- */
+@supports (padding: env(safe-area-inset-top)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  .site-header .container {
+    padding-left: max(1.25rem, env(safe-area-inset-left));
+    padding-right: max(1.25rem, env(safe-area-inset-right));
+  }
+
+  .site-footer {
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
+
+  .modal-backdrop {
+    padding: max(1.25rem, env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-right)) max(1.25rem, env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left));
+  }
+
+  .toast-container {
+    bottom: max(1.5rem, env(safe-area-inset-bottom));
+    right: max(1.5rem, env(safe-area-inset-right));
+  }
+}
+
+/* ==========================================================================
+   HEADER — Compact mobile header across all pages
+   ========================================================================== */
+@media (max-width: 480px) {
+  .site-header .container {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    min-height: 46px;
+    gap: 0.35rem;
+  }
+
+  /* Nav buttons — hide text labels, show icon-only */
+  .site-header .btn-sm span,
+  .site-header .btn-secondary span,
+  .site-header .btn-primary span {
+    display: none;
+  }
+
+  .site-header .btn-sm,
+  .site-header .btn-secondary,
+  .site-header .btn-primary {
+    padding: 0.35rem;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    justify-content: center;
+  }
+
+  /* Right-side header actions */
+  .site-header .container > div {
+    gap: 0.3rem;
+    flex-shrink: 0;
+  }
+
+  /* Logout button compact */
+  .btn-logout {
+    padding: 0.28rem 0.55rem;
+    font-size: 0.72rem;
+    gap: 0.25rem;
+  }
+
+  .btn-logout span {
+    display: none;
+  }
+
+  .btn-logout {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+/* ==========================================================================
+   INDEX / LANDING PAGE — Full mobile adaptation
+   ========================================================================== */
+
+/* Hero section mobile */
+@media (max-width: 480px) {
+  .hero-title {
+    font-size: 1.55rem;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+  }
+
+  .hero-desc {
+    font-size: 0.88rem;
+    line-height: 1.5;
+    margin-top: 0.5rem;
+  }
+
+  .hero-content-wrap {
+    padding-top: 0.5rem !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .hero-title {
+    font-size: 1.35rem;
+    line-height: 1.22;
+  }
+
+  .hero-desc {
+    font-size: 0.82rem;
+  }
+}
+
+/* Role selection cards — mobile compact */
+@media (max-width: 640px) {
+  .role-selection-card {
+    min-height: 260px;
+    padding: 1.5rem 1.25rem;
+  }
+
+  .role-card-icon-box {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    margin-bottom: 0.85rem;
+  }
+
+  .role-card-title {
+    font-size: 1.2rem;
+  }
+
+  .role-card-desc {
+    font-size: 0.84rem;
+    line-height: 1.5;
+  }
+
+  .role-card-btn {
+    height: 42px;
+    margin-top: 1.25rem;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .role-selection-card {
+    min-height: 230px;
+    padding: 1.25rem 1rem;
+  }
+
+  .role-card-icon-box {
+    width: 42px;
+    height: 42px;
+    margin-bottom: 0.65rem;
+  }
+
+  .role-card-eyebrow {
+    font-size: 0.68rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .role-card-title {
+    font-size: 1.1rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .role-card-desc {
+    font-size: 0.8rem;
+  }
+
+  .role-card-btn {
+    height: 40px;
+    margin-top: 1rem;
+    font-size: 0.82rem;
+  }
+}
+
+/* "Built for Events" section — disable sticky on mobile */
+@media (max-width: 640px) {
+  .built-for-events-track {
+    height: auto;
+  }
+
+  .built-for-events-sticky-wrapper {
+    position: relative;
+    top: 0;
+    min-height: auto;
+    padding: 0.5rem 0;
+  }
+
+  .built-for-events-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .built-event-preview-card {
+    aspect-ratio: 16 / 9;
+    max-height: 220px;
+    border-radius: var(--radius-md);
+  }
+
+  .event-category-nav::before {
+    left: 28px;
+  }
+
+  .event-category-card {
+    padding: 0.85rem;
+    gap: 0.75rem;
+  }
+
+  .event-category-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  .event-category-icon svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .event-category-title {
+    font-size: 0.95rem;
+  }
+
+  .event-category-desc {
+    font-size: 0.8rem;
+  }
+
+  .section-eyebrow {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.75rem;
+  }
+
+  .built-event-tag {
+    top: 0.75rem;
+    left: 0.75rem;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.72rem;
+  }
+}
+
+/* Platform highlights — single column mobile */
+@media (max-width: 640px) {
+  .platform-highlights-section {
+    padding-top: var(--space-lg);
+    padding-bottom: var(--space-lg);
+  }
+
+  .platform-highlights-grid {
+    margin-top: 1.5rem;
+  }
+
+  .platform-feature-card {
+    padding: 0.85rem;
+    border-radius: var(--radius-md);
+  }
+
+  .platform-feature-img-wrapper {
+    aspect-ratio: 16 / 9;
+    margin-bottom: 0.85rem;
+    border-radius: var(--radius-sm);
+  }
+
+  .platform-feature-title {
+    font-size: 0.95rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .platform-feature-desc {
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+}
+
+/* ==========================================================================
+   ADMIN DASHBOARD — Mobile layout improvements
+   ========================================================================== */
+@media (max-width: 640px) {
+  /* Dashboard title row — stack vertically */
+  .dashboard-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .dashboard-title-row h1 {
+    font-size: 1.35rem;
+  }
+
+  .dashboard-title-row .btn {
+    width: 100%;
+  }
+
+  /* Admin header user badge */
+  #admin-user-badge {
+    max-width: 140px;
+  }
+
+  #admin-user-badge span {
+    max-width: 70px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Grid-2 already stacks at 860px but add extra padding polish */
+  .grid-2 {
+    gap: 1rem;
+  }
+
+  /* Aceternity upload wrapper — tighter padding */
+  .aceternity-upload-wrapper {
+    padding: 1rem;
+    border-radius: var(--radius-md);
+  }
+
+  .aceternity-upload-card {
+    padding: 1rem;
+    border-radius: var(--radius-md);
+  }
+
+  /* Aceternity files preview */
+  .aceternity-files-preview-card {
+    padding: 0.75rem 0.85rem;
+  }
+
+  .aceternity-file-thumbnail {
+    width: 34px;
+    height: 34px;
+  }
+
+  .aceternity-file-name {
+    font-size: 0.78rem;
+  }
+
+  /* Event cards — compact on mobile */
+  .event-card-body {
+    padding: 1.15rem 1rem 0.85rem;
+  }
+
+  .event-card-name {
+    font-size: 1rem;
+  }
+
+  .event-card-top {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .event-id-badge {
+    align-self: flex-start;
+  }
+
+  .event-card-actions {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .event-card-actions .btn {
+    font-size: 0.78rem;
+    padding: 0 0.65rem;
+    height: 34px;
+  }
+
+  /* QR Code preview — fit mobile */
+  .qr-preview-wrapper {
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Event cards — further compact */
+  .event-card-body {
+    padding: 1rem 0.85rem 0.75rem;
+  }
+
+  .event-card-actions {
+    flex-direction: column;
+    padding: 0.65rem 0.85rem;
+  }
+
+  .event-card-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Guest access box — always stack */
+  .guest-access-box {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
+  }
+
+  .guest-access-actions {
+    width: 100%;
+    gap: 0.3rem;
+  }
+
+  .guest-access-actions .btn {
+    flex: 1;
+  }
+}
+
+/* ==========================================================================
+   LOGIN PAGES — Mobile compact
+   ========================================================================== */
+@media (max-width: 640px) {
+  .login-container {
+    max-width: 100%;
+  }
+
+  .login-card {
+    padding: 1.75rem 1.25rem;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+  }
+
+  .login-title {
+    font-size: 1.35rem;
+  }
+
+  .login-subtitle {
+    font-size: 0.84rem;
+  }
+
+  .login-icon-badge {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 0.75rem;
+  }
+
+  .auth-tabs {
+    margin-bottom: 1.15rem;
+  }
+
+  .auth-tab {
+    padding: 0.55rem 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  .input-with-icon .form-control {
+    height: 46px;
+    font-size: 0.88rem;
+  }
+
+  /* Login footer */
+  .login-footer {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 1.5rem 1.15rem;
+    border-radius: var(--radius-md);
+  }
+
+  .login-title {
+    font-size: 1.25rem;
+  }
+
+  /* OTP digit grid — fit narrow screens */
+  .otp-digit-grid {
+    gap: 0.4rem;
+  }
+
+  .otp-digit {
+    width: 42px;
+    height: 50px;
+    font-size: 1.3rem;
+    border-radius: var(--radius-sm);
+  }
+
+  .auth-tab {
+    font-size: 0.76rem;
+    padding: 0.5rem 0.5rem;
+    gap: 0.35rem;
+  }
+
+  .auth-tab svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (max-width: 360px) {
+  .login-card {
+    padding: 1.25rem 1rem;
+  }
+
+  /* OTP grid — even tighter for 320-360px */
+  .otp-digit-grid {
+    gap: 0.3rem;
+  }
+
+  .otp-digit {
+    width: 38px;
+    height: 46px;
+    font-size: 1.15rem;
+  }
+
+  .otp-sent-info {
+    padding: 0.5rem 0.65rem;
+    font-size: 0.78rem;
+  }
+
+  .otp-timer-row {
+    font-size: 0.78rem;
+  }
+}
+
+/* ==========================================================================
+   GUEST PAGE — Toast, Lightbox & Photo Cards Polish
+   ========================================================================== */
+
+/* Toast — reposition to bottom-center on mobile */
+@media (max-width: 640px) {
+  .toast-container {
+    bottom: 1rem;
+    right: 0.75rem;
+    left: 0.75rem;
+    align-items: stretch;
+  }
+
+  .toast-pill {
+    width: 100%;
+    justify-content: center;
+    font-size: 0.82rem;
+    padding: 0.55rem 1rem;
+  }
+}
+
+/* Photo viewer lightbox — fullscreen on mobile */
+@media (max-width: 640px) {
+  .photo-viewer-dialog {
+    width: 100vw;
+    max-width: 100vw;
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+  }
+
+  .photo-viewer-header {
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.4rem;
+  }
+
+  .photo-viewer-filename {
+    font-size: 0.82rem;
+    max-width: 200px;
+  }
+
+  .photo-viewer-img-container {
+    max-height: 65vh;
+    border-radius: var(--radius-xs);
+  }
+
+  .photo-viewer-img {
+    max-height: 65vh;
+  }
+}
+
+/* Matched photo cards — better touch targets */
+@media (max-width: 640px) {
+  .matched-results-section {
+    margin-top: 1.75rem;
+    margin-bottom: 2rem;
+  }
+
+  .matched-results-header {
+    margin-bottom: 1.15rem;
+  }
+
+  .matched-count-badge {
+    font-size: 0.78rem;
+    padding: 0.3rem 0.75rem;
+  }
+
+  /* Ensure touch-friendly button height */
+  .matched-photo-actions .btn {
+    min-height: 36px;
+  }
+}
+
+/* ==========================================================================
+   MODAL — Global mobile improvements
+   ========================================================================== */
+@media (max-width: 480px) {
+  .modal-dialog {
+    padding: 1.35rem 1.15rem;
+    border-radius: var(--radius-md);
+    max-width: calc(100vw - 2rem);
+  }
+
+  .modal-title {
+    font-size: 1.1rem;
+  }
+
+  .modal-message {
+    font-size: 0.84rem;
+    margin-bottom: 1.15rem;
+  }
+
+  .modal-icon-badge {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 0.85rem;
+  }
+
+  .modal-actions {
+    gap: 0.5rem;
+  }
+
+  .modal-actions .btn {
+    height: 40px;
+    font-size: 0.84rem;
+  }
+}
+
+/* ==========================================================================
+   AI SCANNER — Additional mobile polish
+   ========================================================================== */
+@media (max-width: 380px) {
+  .ai-scanner-modal {
+    padding: 1rem 0.85rem;
+    border-radius: 18px;
+  }
+
+  .ai-scanner-viewport-wrap {
+    width: 165px;
+    height: 165px;
+  }
+
+  .ai-scanner-status-text {
+    font-size: 0.88rem;
+  }
+
+  .ai-scanner-telemetry-grid {
+    gap: 0.35rem;
+  }
+
+  .ai-tel-label {
+    font-size: 0.55rem;
+  }
+
+  .ai-tel-val {
+    font-size: 0.7rem;
+  }
+
+  .ai-scanner-badge {
+    padding: 0.25rem 0.6rem;
+    gap: 0.4rem;
+  }
+
+  .ai-scanner-badge-title {
+    font-size: 0.65rem;
+  }
+
+  .ai-error-actions {
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .ai-error-actions .btn {
+    width: 100%;
+  }
+}
+
+/* ==========================================================================
+   STORAGE CARD — Final mobile polish for very narrow screens
+   ========================================================================== */
+@media (max-width: 380px) {
+  .storage-plan-card {
+    padding: 1rem 0.85rem;
+  }
+
+  .storage-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .storage-upgrade-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .storage-percentage-val {
+    font-size: 1.65rem;
+  }
+
+  .storage-photos-desc {
+    font-size: 0.82rem;
+  }
+}
+
+/* ==========================================================================
+   MINIMUM TOUCH TARGETS — Ensure adequate size for all interactive elements
+   ========================================================================== */
+@media (max-width: 768px) {
+  button:not(.camera-shutter-btn):not(.ai-scanner-close-btn),
+  .btn:not(.btn-icon) {
+    min-height: 36px;
+  }
+
+  input[type="text"],
+  input[type="date"],
+  input[type="email"],
+  select {
+    min-height: 42px;
+    font-size: 16px; /* Prevent iOS auto-zoom on focus */
+  }
+}
+
+/* ==========================================================================
+   PREVENT HORIZONTAL OVERFLOW — All pages
+   ========================================================================== */
+@media (max-width: 768px) {
+  .container {
+    max-width: 100vw;
+  }
+
+  img, video, canvas {
+    max-width: 100%;
+    height: auto;
+  }
+}
