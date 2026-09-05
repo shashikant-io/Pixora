@@ -791,15 +791,46 @@ async function handleCreateEvent(e) {
   messageEl.innerHTML = "";
 
   try {
-    const response = await fetch(`${API_BASE_URL}/events`, {
-      method: "POST",
-      headers: getAdminAuthHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ name, date, location }),
-    });
-    const data = await response.json();
+    let response;
+    try {
+      response = await fetch(`${API_BASE_URL}/events`, {
+        method: "POST",
+        headers: getAdminAuthHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ name, date, location }),
+      });
+    } catch (networkErr) {
+      throw new Error(
+        "Could not reach the server. Please make sure the backend is running on " +
+        API_BASE_URL.replace("/api", "") + " and try again."
+      );
+    }
 
-    if (!data.success) {
-      throw new Error(data.message || "Could not create event.");
+    // Safely parse the response — guard against non-JSON responses (HTML error pages, proxy errors, etc.)
+    const contentType = response.headers.get("content-type") || "";
+    let data;
+    if (contentType.includes("application/json")) {
+      try {
+        data = await response.json();
+      } catch (parseErr) {
+        throw new Error(`Server returned invalid JSON (HTTP ${response.status}). The backend may be misconfigured.`);
+      }
+    } else {
+      // Server returned non-JSON (likely an HTML error page or plain text)
+      let bodyPreview = "";
+      try {
+        bodyPreview = await response.text();
+        bodyPreview = bodyPreview.substring(0, 200).replace(/<[^>]*>/g, "").trim();
+      } catch (_) {}
+      throw new Error(
+        `Server returned an unexpected response (HTTP ${response.status}). ` +
+        `Expected JSON but received ${contentType || "unknown content type"}. ` +
+        (bodyPreview ? `Response: "${bodyPreview.substring(0, 80)}..."` : "") +
+        ` Make sure the API server is running at ${API_BASE_URL}.`
+      );
+    }
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || `Could not create event (HTTP ${response.status}).`);
     }
 
     showToast(`Event "${data.event.name}" created!`);
@@ -821,7 +852,22 @@ async function loadEvents() {
     const response = await fetch(`${API_BASE_URL}/events`, {
       headers: getAdminAuthHeaders(),
     });
-    const data = await response.json();
+
+    // Safe JSON parsing — guard against non-JSON responses
+    const contentType = response.headers.get("content-type") || "";
+    let data;
+    if (contentType.includes("application/json")) {
+      try {
+        data = await response.json();
+      } catch (parseErr) {
+        throw new Error(`Server returned invalid JSON (HTTP ${response.status}).`);
+      }
+    } else {
+      throw new Error(
+        `Cannot load events — server returned non-JSON response (HTTP ${response.status}). ` +
+        `Make sure the API server is running at ${API_BASE_URL}.`
+      );
+    }
 
     if (!data.success) throw new Error(data.message || "Could not load events.");
 

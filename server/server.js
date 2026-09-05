@@ -28,9 +28,6 @@ app.use(async (req, res, next) => {
   next();
 });
 
-const clientPath = path.join(__dirname, "..", "client");
-app.use(express.static(clientPath));
-
 
 const eventRoutes = require("./routes/eventRoutes");
 const photoRoutes = require("./routes/photoRoutes");
@@ -54,12 +51,18 @@ app.use(["/api/search", "/search"], searchRoutes);
 app.use(["/api/admin", "/admin"], adminRoutes);
 app.use(["/api/auth", "/auth"], authRoutes);
 
+// API catch-all 404 — must come BEFORE static files so unmatched /api/* routes always return JSON
 app.use("/api", (req, res) => {
   res.status(404).json({
     success: false,
     message: "API route not found.",
   });
 });
+
+// Serve client static files AFTER API routes to prevent HTML responses on API endpoints
+const clientPath = path.join(__dirname, "..", "client");
+app.use(express.static(clientPath));
+
 
 
 app.use((err, req, res, next) => {
