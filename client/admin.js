@@ -111,7 +111,7 @@ async function validateAdminSession() {
   }
 
   try {
-    const res = await fetch("/api/auth/me", {
+    const res = await fetch(`${API_BASE_URL}/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
@@ -1038,7 +1038,7 @@ function openQrModal(ev, guestUrl) {
 async function fallbackRenderQr(ev, guestUrl, canvas, imgEl) {
   // 1. Try server-side QR API
   try {
-    const res = await fetch(`/api/events/${encodeURIComponent(ev.eventId)}/qr?guestUrl=${encodeURIComponent(guestUrl)}`);
+    const res = await fetch(`${API_BASE_URL}/events/${encodeURIComponent(ev.eventId)}/qr?guestUrl=${encodeURIComponent(guestUrl)}`);
     const data = await res.json();
     if (data.success && data.qrDataUrl) {
       if (imgEl) {

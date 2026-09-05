@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { X, Calendar, MapPin, Plus } from 'lucide-react'
+import { X, Calendar, MapPin, Plus, AlertCircle } from 'lucide-react'
 
-export default function CreateEventModal({ isOpen, onClose }) {
+export default function CreateEventModal({ isOpen, onClose, onEventCreated }) {
   const [name, setName] = useState('')
   const [date, setDate] = useState('')
   const [location, setLocation] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
   if (!isOpen) return null
 
@@ -14,13 +15,52 @@ export default function CreateEventModal({ isOpen, onClose }) {
     if (!name.trim() || !date) return
 
     setIsSubmitting(true)
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 1200))
-    setIsSubmitting(false)
-    setName('')
-    setDate('')
-    setLocation('')
-    onClose()
+    setErrorMessage('')
+
+    try {
+      const token =
+        localStorage.getItem('photo_finder_admin_token') ||
+        localStorage.getItem('photo_finder_token') ||
+        sessionStorage.getItem('photo_finder_admin_token') ||
+        sessionStorage.getItem('photo_finder_token')
+
+      const headers = {
+        'Content-Type': 'application/json',
+      }
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+
+      const res = await fetch('/api/events', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          name: name.trim(),
+          date,
+          location: location.trim() || 'Main Venue',
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to create event.')
+      }
+
+      setName('')
+      setDate('')
+      setLocation('')
+      setErrorMessage('')
+      if (onEventCreated) {
+        await onEventCreated(data.event)
+      }
+      onClose()
+    } catch (err) {
+      console.error('Create event error:', err)
+      setErrorMessage(err.message || 'Could not connect to server.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -31,14 +71,14 @@ export default function CreateEventModal({ isOpen, onClose }) {
       aria-modal="true"
       aria-labelledby="create-event-title"
     >
-      <div className="modal-enter bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 pb-8 max-h-[90vh] overflow-y-auto">
+      <div className="modal-enter bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 pb-8 max-h-[90vh] overflow-y-auto shadow-2xl">
         {/* Close handle (mobile) */}
         <div className="flex justify-center mb-3 sm:hidden">
           <div className="w-10 h-1 rounded-full bg-gray-200" />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-5">
           <h2 id="create-event-title" className="text-[1.2rem] font-bold text-navy">
             Create New Event
           </h2>
@@ -50,6 +90,13 @@ export default function CreateEventModal({ isOpen, onClose }) {
             <X size={18} />
           </button>
         </div>
+
+        {errorMessage && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-[0.82rem] rounded-xl flex items-center gap-2">
+            <AlertCircle size={16} className="shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Event Name */}

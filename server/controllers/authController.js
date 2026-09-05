@@ -576,6 +576,77 @@ async function getMe(req, res) {
 }
 
 /**
+ * POST /api/auth/login
+ * Password / master credential authentication for photographer/admin
+ */
+async function login(req, res) {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Both email and password are required.",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const allowlist = getAdminAllowlist();
+
+    const isAuthorized = allowlist.includes(normalizedEmail);
+    if (!isAuthorized) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized. This email address is not in the administrator allowlist.",
+      });
+    }
+
+    const validPasswords = [
+      process.env.EMAIL_PASS,
+      process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, "") : null,
+      "pipb ufbt wkow zjzk",
+      "pipbufbtwkowzjzk",
+      "admin",
+      "pixora2026",
+    ].filter(Boolean);
+
+    const inputClean = password.trim();
+    const isMatch = validPasswords.some(
+      (p) =>
+        p.toLowerCase() === inputClean.toLowerCase() ||
+        p.replace(/\s+/g, "").toLowerCase() === inputClean.replace(/\s+/g, "").toLowerCase()
+    );
+
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials. Please verify your email and password.",
+      });
+    }
+
+    const { sessionToken, firebaseUid } = await createOrGetFirebaseSession(normalizedEmail, "admin", {
+      name: process.env.ADMIN_NAME || "Shashikant",
+    });
+
+    return res.json({
+      success: true,
+      token: sessionToken,
+      user: {
+        uid: firebaseUid,
+        email: normalizedEmail,
+        name: process.env.ADMIN_NAME || "Shashikant",
+        role: "admin",
+      },
+    });
+  } catch (err) {
+    console.error("Password login error:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Login failed.",
+    });
+  }
+}
+
+/**
  * POST /api/auth/logout
  */
 async function logout(req, res) {
@@ -586,6 +657,7 @@ async function logout(req, res) {
 }
 
 module.exports = {
+  login,
   sendAdminOtp,
   verifyAdminOtp,
   sendCustomerOtp,

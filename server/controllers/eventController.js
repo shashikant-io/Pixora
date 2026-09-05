@@ -59,15 +59,26 @@ async function createEvent(req, res) {
       });
     }
 
+    const cleanName = String(name).trim();
+    const cleanLocation = String(location).trim();
+    const parsedDate = new Date(date);
+
+    if (isNaN(parsedDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid event date format.",
+      });
+    }
+
     const eventId = generateEventId();
     const accessToken = generateAccessToken();
 
     const newEvent = await Event.create({
       eventId,
       accessToken,
-      name,
-      date,
-      location,
+      name: cleanName,
+      date: parsedDate,
+      location: cleanLocation,
     });
 
     res.status(201).json({
@@ -82,7 +93,7 @@ async function createEvent(req, res) {
     console.error("Create event error:", error);
     res.status(500).json({
       success: false,
-      message: "Could not create event.",
+      message: error.message || "Could not create event.",
     });
   }
 }
@@ -112,7 +123,7 @@ async function getEvent(req, res) {
     // Auto-backfill accessToken if event doesn't have one yet
     if (!event.accessToken) {
       event.accessToken = generateAccessToken();
-      await event.save().catch(() => {});
+      await event.save().catch(() => { });
     }
 
     let photoCount = 0;
@@ -169,7 +180,7 @@ async function listEvents(req, res) {
       events.map(async (ev) => {
         if (!ev.accessToken) {
           ev.accessToken = generateAccessToken();
-          await ev.save().catch(() => {});
+          await ev.save().catch(() => { });
         }
         return {
           ...ev.toObject(),
