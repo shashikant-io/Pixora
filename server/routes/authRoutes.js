@@ -22,6 +22,8 @@ router.post("/login", login);
 // Admin OTP endpoints
 router.post("/admin/send-otp", sendAdminOtp);
 router.post("/admin/verify-otp", verifyAdminOtp);
+router.post("/send-otp", sendAdminOtp);
+router.post("/verify-otp", verifyAdminOtp);
 
 // Customer Google Sign-In endpoint
 router.post("/customer/google-login", googleCustomerLogin);

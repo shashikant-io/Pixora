@@ -227,12 +227,11 @@ document.addEventListener("DOMContentLoaded", () => {
       setButtonLoading(btnSendOtp, true);
 
       try {
-        const response = await fetch(`${API_BASE_URL}/auth/send-otp`, {
+        const response = await fetch(`${API_BASE_URL}/auth/admin/send-otp`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email }),
         });
-
 
         const result = await response.json();
 
@@ -241,30 +240,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         // Switch to Step 2
-        otpTargetDisplay.textContent = result.email || email;
+        otpTargetDisplay.textContent = email;
         otpRequestForm.style.display = "none";
         otpVerifyForm.style.display = "block";
 
-        if (result.sentToInbox) {
-          showAlert("success", `✓ Verification code sent to your inbox (${email})`);
-        } else if (result.devOtp) {
-          showAlert("info", `⚡ <strong>Passcode: <span style="letter-spacing: 2px; font-size: 1.1rem; color: #FFF;">${result.devOtp}</span></strong><br/><span style="font-size: 0.78rem; opacity: 0.85;">(Google SMTP rejected App Password. Code autofilled for instant login).</span>`);
-          
-          // Auto-fill OTP boxes
-          const digits = result.devOtp.split("");
-          digits.forEach((digit, i) => {
-            if (otpDigitInputs[i]) {
-              otpDigitInputs[i].value = digit;
-            }
-          });
-        } else {
-          showAlert("success", result.message || `Verification code generated for ${email}`);
-        }
+        showAlert("success", result.message || `✓ 6-digit OTP code sent to ${email}`);
 
         // Start countdown timer
         startOtpCountdown();
 
-        // Focus first OTP input or submit button
+        // Focus first OTP input
         if (otpDigitInputs.length > 0) {
           otpDigitInputs[0].focus();
         }
@@ -384,12 +369,11 @@ document.addEventListener("DOMContentLoaded", () => {
       setButtonLoading(btnVerifyOtp, true);
 
       try {
-        const response = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
+        const response = await fetch(`${API_BASE_URL}/auth/admin/verify-otp`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, otp: otpCode }),
         });
-
 
         const result = await response.json();
 

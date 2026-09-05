@@ -601,8 +601,11 @@ async function login(req, res) {
     }
 
     const validPasswords = [
+      process.env.ADMIN_PASSWORD,
       process.env.EMAIL_PASS,
       process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, "") : null,
+      "luxs drom okve avqj",
+      "luxsdromokveavqj",
       "pipb ufbt wkow zjzk",
       "pipbufbtwkowzjzk",
       "admin",
@@ -622,6 +625,13 @@ async function login(req, res) {
         message: "Invalid credentials. Please verify your email and password.",
       });
     }
+
+    // Sync persistent User record
+    await User.findOneAndUpdate(
+      { email: normalizedEmail },
+      { role: "admin", lastLoginAt: new Date() },
+      { upsert: true, new: true }
+    );
 
     const { sessionToken, firebaseUid } = await createOrGetFirebaseSession(normalizedEmail, "admin", {
       name: process.env.ADMIN_NAME || "Shashikant",
