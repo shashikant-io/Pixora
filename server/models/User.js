@@ -38,6 +38,16 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  passwordHash: {
+    type: String,
+    default: null,
+    select: false,
+  },
+  passwordSalt: {
+    type: String,
+    default: null,
+    select: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

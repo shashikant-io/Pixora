@@ -600,24 +600,62 @@ async function login(req, res) {
       });
     }
 
-    const validPasswords = [
-      process.env.ADMIN_PASSWORD,
-      process.env.EMAIL_PASS,
-      process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, "") : null,
-      "luxs drom okve avqj",
-      "luxsdromokveavqj",
-      "pipb ufbt wkow zjzk",
-      "pipbufbtwkowzjzk",
-      "admin",
-      "pixora2026",
-    ].filter(Boolean);
-
+    // 1. Check if user exists in database with a stored PBKDF2 hash
+    const userDoc = await User.findOne({ email: normalizedEmail, role: "admin" }).select("+passwordHash +passwordSalt");
+    let isMatch = false;
     const inputClean = password.trim();
-    const isMatch = validPasswords.some(
-      (p) =>
-        p.toLowerCase() === inputClean.toLowerCase() ||
-        p.replace(/\s+/g, "").toLowerCase() === inputClean.replace(/\s+/g, "").toLowerCase()
-    );
+
+    if (userDoc && userDoc.passwordHash && userDoc.passwordSalt) {
+      try {
+        const calculatedHash = crypto
+          .pbkdf2Sync(inputClean, userDoc.passwordSalt, 100000, 64, "sha512")
+          .toString("hex");
+        if (
+          calculatedHash.length === userDoc.passwordHash.length &&
+          crypto.timingSafeEqual(Buffer.from(calculatedHash), Buffer.from(userDoc.passwordHash))
+        ) {
+          isMatch = true;
+        }
+      } catch (hashErr) {
+        console.error("PBKDF2 verification error:", hashErr);
+      }
+    }
+
+    // 2. Fallback to configured environment passwords (and seed DB hash)
+    if (!isMatch) {
+      const validPasswords = [
+        process.env.ADMIN_PASSWORD,
+        process.env.EMAIL_PASS,
+        process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, "") : null,
+        "luxs drom okve avqj",
+        "luxsdromokveavqj",
+        "pipb ufbt wkow zjzk",
+        "pipbufbtwkowzjzk",
+        "admin",
+        "pixora2026",
+      ].filter(Boolean);
+
+      isMatch = validPasswords.some(
+        (p) =>
+          p.toLowerCase() === inputClean.toLowerCase() ||
+          p.replace(/\s+/g, "").toLowerCase() === inputClean.replace(/\s+/g, "").toLowerCase()
+      );
+
+      // If matched via environment credential, securely seed PBKDF2 hash into database
+      if (isMatch) {
+        try {
+          const salt = crypto.randomBytes(16).toString("hex");
+          const hash = crypto.pbkdf2Sync(inputClean, salt, 100000, 64, "sha512").toString("hex");
+          await User.findOneAndUpdate(
+            { email: normalizedEmail },
+            { role: "admin", passwordHash: hash, passwordSalt: salt, lastLoginAt: new Date() },
+            { upsert: true, new: true }
+          );
+        } catch (seedErr) {
+          console.error("Error seeding password hash:", seedErr);
+        }
+      }
+    }
 
     if (!isMatch) {
       return res.status(401).json({
@@ -626,7 +664,7 @@ async function login(req, res) {
       });
     }
 
-    // Sync persistent User record
+    // Sync persistent User record login timestamp
     await User.findOneAndUpdate(
       { email: normalizedEmail },
       { role: "admin", lastLoginAt: new Date() },
