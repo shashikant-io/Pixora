@@ -9,6 +9,9 @@ const {
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const sharp = require("sharp");
 const path = require("path");
+const dotenv = require("dotenv");
+
+dotenv.config({ path: path.join(__dirname, "../.env") });
 
 let s3ClientInstance = null;
 
@@ -170,7 +173,6 @@ async function getSignedUploadUrl(eventId, originalName, mimeType = "image/jpeg"
       Bucket: bucket,
       Key: photoKey,
       ContentType: mimeType,
-      ServerSideEncryption: "AES256",
     });
 
     const uploadUrl = await getSignedUrl(s3, command, { expiresIn });
@@ -504,4 +506,6 @@ module.exports = {
   getObjectStream,
   getStorageUsage,
   invalidateStorageUsageCache,
+  hasCredentials,
+  isS3Configured: hasCredentials,
 };

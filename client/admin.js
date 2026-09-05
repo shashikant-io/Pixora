@@ -657,7 +657,7 @@ async function uploadSinglePhotoWithRetry(file, eventId, statusEl, onStageChange
       }
 
       statusEl.className = "upload-item-status running";
-      statusEl.innerHTML = `${getIcon("spinner")} <span>Uploading to storage&hellip;</span>`;
+      statusEl.innerHTML = `${getIcon("spinner")} <span>Uploading...</span>`;
 
       let uploadSuccess = false;
       let photoData = null;
@@ -685,10 +685,17 @@ async function uploadSinglePhotoWithRetry(file, eventId, statusEl, onStageChange
           } catch (e) {}
         } else if (presignRes.status === 413) {
           throw new Error("This photo is too large. Maximum allowed size is 25 MB.");
+        } else {
+          try {
+            const errJson = await presignRes.json();
+            if (errJson && errJson.message) throw new Error(errJson.message);
+          } catch (e) {
+            if (e.message) throw e;
+          }
         }
 
         if (presignData && presignData.success && presignData.directUpload && presignData.uploadUrl) {
-          // Direct PUT to AWS S3
+          // Direct PUT to AWS S3 storage
           const s3PutRes = await fetch(presignData.uploadUrl, {
             method: "PUT",
             headers: {
@@ -698,11 +705,11 @@ async function uploadSinglePhotoWithRetry(file, eventId, statusEl, onStageChange
           });
 
           if (!s3PutRes.ok) {
-            throw new Error(`Direct S3 upload failed (HTTP ${s3PutRes.status})`);
+            throw new Error(`Direct storage upload failed (HTTP ${s3PutRes.status})`);
           }
 
-          // Confirm upload and trigger Buffalo AI face indexing
-          statusEl.innerHTML = `${getIcon("spinner")} <span>Buffalo AI indexing&hellip;</span>`;
+          // Stage 2: Storage confirmed (Uploaded) -> Trigger AI Indexing
+          statusEl.innerHTML = `${getIcon("spinner")} <span>Uploaded &bull; AI Indexing...</span>`;
 
           const confirmRes = await fetch(`${API_BASE_URL}/photos/confirm-upload`, {
             method: "POST",
@@ -730,25 +737,28 @@ async function uploadSinglePhotoWithRetry(file, eventId, statusEl, onStageChange
           if (confirmRes.ok && confirmData.success) {
             uploadSuccess = true;
             photoData = confirmData;
+          } else {
+            throw new Error((confirmData && confirmData.message) || `Confirmation failed (HTTP ${confirmRes.status})`);
           }
         }
       } catch (directErr) {
         console.warn(`Direct S3 upload notice for "${file.name}":`, directErr.message);
-        if (directErr.message && directErr.message.includes("too large")) {
+        // If file is > 4 MB, direct upload failure cannot be rescued by standard multipart on Vercel
+        if (file.size > 4 * 1024 * 1024 || (directErr.message && directErr.message.includes("too large"))) {
           throw directErr;
         }
       }
 
-      // Pipeline B: Standard Multipart Upload (Fallback)
+      // Pipeline B: Standard Multipart Upload (Fallback only for small files on localhost)
       if (!uploadSuccess) {
-        statusEl.innerHTML = `${getIcon("spinner")} <span>Uploading&hellip;</span>`;
+        statusEl.innerHTML = `${getIcon("spinner")} <span>Uploading...</span>`;
         const formData = new FormData();
         formData.append("photo", file);
         formData.append("eventId", eventId);
 
         const indexingTimer = setTimeout(() => {
-          statusEl.innerHTML = `${getIcon("spinner")} <span>Buffalo AI indexing&hellip;</span>`;
-        }, 800);
+          statusEl.innerHTML = `${getIcon("spinner")} <span>Uploaded &bull; AI Indexing...</span>`;
+        }, 600);
 
         const response = await fetch(`${API_BASE_URL}/photos/upload`, {
           method: "POST",
@@ -789,9 +799,9 @@ async function uploadSinglePhotoWithRetry(file, eventId, statusEl, onStageChange
 
       statusEl.className = "upload-item-status success";
       if (faceCount > 0) {
-        statusEl.innerHTML = `${getIcon("checkCircle")} <span>Indexed (${faceCount} face${faceCount === 1 ? "" : "s"})</span>`;
+        statusEl.innerHTML = `${getIcon("checkCircle")} <span>Ready (${faceCount} face${faceCount === 1 ? "" : "s"})</span>`;
       } else {
-        statusEl.innerHTML = `${getIcon("checkCircle")} <span>Indexed (0 faces detected)</span>`;
+        statusEl.innerHTML = `${getIcon("checkCircle")} <span>Ready (Indexed)</span>`;
       }
 
       return { success: true, file, data: photoData };
