@@ -916,10 +916,13 @@ async function loadEvents() {
 
     if (events.length === 0) {
       listEl.innerHTML = `
-        <div style="grid-column: 1 / -1; text-align: center; padding: 2.5rem 1rem; background: rgba(0,0,0,0.2); border: 1px dashed var(--border-subtle); border-radius: var(--radius-md);">
-          <div style="color: var(--text-muted); margin-bottom: 0.5rem;">${getIcon("folder")}</div>
-          <h3 style="font-size: 1.1rem; margin-bottom: 0.25rem;">No Events Created Yet</h3>
-          <p style="font-size: 0.85rem; color: var(--text-muted);">Create your first wedding event above to begin uploading photos.</p>
+        <div class="events-empty-state">
+          <div class="events-empty-icon">${getIcon("calendar")}</div>
+          <h3 class="events-empty-title">No events yet</h3>
+          <p class="events-empty-desc">Create your first event to get started.</p>
+          <a href="#create-event-form" class="btn btn-secondary btn-sm events-empty-btn" onclick="document.getElementById('event-name')?.focus();">
+            ${getIcon("calendar")} <span>Create Event</span>
+          </a>
         </div>
       `;
       selectEl.innerHTML = `<option value="">Create an event first</option>`;
