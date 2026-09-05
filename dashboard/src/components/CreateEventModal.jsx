@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { X, Calendar, MapPin, Plus, AlertCircle } from 'lucide-react'
+import { createEvent } from '../services/api'
 
-export default function CreateEventModal({ isOpen, onClose, onEventCreated }) {
+export default function CreateEventModal({ isOpen, onClose, onEventCreated, onToast }) {
   const [name, setName] = useState('')
   const [date, setDate] = useState('')
   const [location, setLocation] = useState('')
@@ -18,32 +19,13 @@ export default function CreateEventModal({ isOpen, onClose, onEventCreated }) {
     setErrorMessage('')
 
     try {
-      const token =
-        localStorage.getItem('photo_finder_admin_token') ||
-        localStorage.getItem('photo_finder_token') ||
-        sessionStorage.getItem('photo_finder_admin_token') ||
-        sessionStorage.getItem('photo_finder_token')
-
-      const headers = {
-        'Content-Type': 'application/json',
-      }
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`
-      }
-
-      const res = await fetch('/api/events', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          name: name.trim(),
-          date,
-          location: location.trim() || 'Main Venue',
-        }),
+      const data = await createEvent({
+        name: name.trim(),
+        date,
+        location: location.trim() || 'Main Venue',
       })
 
-      const data = await res.json()
-
-      if (!res.ok || !data.success) {
+      if (!data.success) {
         throw new Error(data.message || 'Failed to create event.')
       }
 
@@ -51,6 +33,11 @@ export default function CreateEventModal({ isOpen, onClose, onEventCreated }) {
       setDate('')
       setLocation('')
       setErrorMessage('')
+
+      if (onToast) {
+        onToast(`Event "${data.event?.name || name}" created successfully!`, 'success')
+      }
+
       if (onEventCreated) {
         await onEventCreated(data.event)
       }
@@ -58,6 +45,9 @@ export default function CreateEventModal({ isOpen, onClose, onEventCreated }) {
     } catch (err) {
       console.error('Create event error:', err)
       setErrorMessage(err.message || 'Could not connect to server.')
+      if (onToast) {
+        onToast(err.message || 'Failed to create event.', 'error')
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -65,13 +55,13 @@ export default function CreateEventModal({ isOpen, onClose, onEventCreated }) {
 
   return (
     <div
-      className="modal-backdrop fixed inset-0 z-[100] flex items-end sm:items-center justify-center"
+      className="modal-backdrop fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
       aria-labelledby="create-event-title"
     >
-      <div className="modal-enter bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 pb-8 max-h-[90vh] overflow-y-auto shadow-2xl">
+      <div className="modal-enter bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 pb-8 max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-100">
         {/* Close handle (mobile) */}
         <div className="flex justify-center mb-3 sm:hidden">
           <div className="w-10 h-1 rounded-full bg-gray-200" />
@@ -79,9 +69,14 @@ export default function CreateEventModal({ isOpen, onClose, onEventCreated }) {
 
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
-          <h2 id="create-event-title" className="text-[1.2rem] font-bold text-navy">
-            Create New Event
-          </h2>
+          <div>
+            <h2 id="create-event-title" className="text-[1.2rem] font-bold text-navy">
+              Create New Event
+            </h2>
+            <p className="text-muted text-[0.8rem] mt-0.5">
+              Set up wedding album details and generate guest access.
+            </p>
+          </div>
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-muted hover:bg-gray-200 transition-colors border-0 cursor-pointer"
@@ -92,9 +87,9 @@ export default function CreateEventModal({ isOpen, onClose, onEventCreated }) {
         </div>
 
         {errorMessage && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-[0.82rem] rounded-xl flex items-center gap-2">
-            <AlertCircle size={16} className="shrink-0" />
-            <span>{errorMessage}</span>
+          <div className="mb-4 p-3.5 bg-red-50 border border-red-200 text-red-700 text-[0.82rem] rounded-2xl flex items-start gap-2.5">
+            <AlertCircle size={17} className="shrink-0 mt-0.5 text-red-600" />
+            <span className="leading-snug">{errorMessage}</span>
           </div>
         )}
 
@@ -152,7 +147,7 @@ export default function CreateEventModal({ isOpen, onClose, onEventCreated }) {
           <button
             type="submit"
             disabled={isSubmitting || !name.trim() || !date}
-            className="w-full bg-navy hover:bg-navy-light active:bg-navy-dark disabled:opacity-50 text-white font-bold text-[0.92rem] py-3.5 rounded-2xl transition-colors cursor-pointer border-0 flex items-center justify-center gap-2 mt-2"
+            className="w-full bg-navy hover:bg-navy-light active:bg-navy-dark disabled:opacity-50 text-white font-bold text-[0.92rem] py-3.5 rounded-2xl transition-colors cursor-pointer border-0 flex items-center justify-center gap-2 mt-2 shadow-sm"
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">

@@ -1,6 +1,6 @@
 import { User, Mail, Shield, LogOut, ChevronRight, Bell, Lock, HelpCircle } from 'lucide-react'
 
-export default function AccountPage({ userName = 'Shashikant', onLogout }) {
+export default function AccountPage({ userName = 'Shashikant', userEmail = '', onLogout }) {
   const initial = userName.charAt(0).toUpperCase()
 
   const menuItems = [
@@ -18,15 +18,16 @@ export default function AccountPage({ userName = 'Shashikant', onLogout }) {
       </div>
 
       {/* Profile Card */}
-      <div className="bg-white rounded-3xl border border-gray-100 p-5 mb-4 flex items-center gap-4">
+      <div className="bg-white rounded-3xl border border-gray-100 p-5 mb-4 flex items-center gap-4 shadow-2xs">
         <div className="w-14 h-14 rounded-full bg-navy flex items-center justify-center text-white text-xl font-bold shrink-0">
           {initial}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[1.05rem] font-bold text-navy">{userName}</p>
+          {userEmail && <p className="text-muted text-[0.78rem] truncate">{userEmail}</p>}
           <p className="text-muted text-[0.82rem] flex items-center gap-1.5 mt-0.5">
-            <Shield size={13} />
-            <span>Administrator</span>
+            <Shield size={13} className="text-purple-600" />
+            <span className="font-medium text-purple-700">Administrator</span>
           </p>
         </div>
       </div>

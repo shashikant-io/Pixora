@@ -13,7 +13,7 @@ function generateAccessToken() {
 }
 
 function computeGuestUrl(event, req = null) {
-  let baseUrl = (process.env.PUBLIC_BASE_URL || "").trim().replace(/\/+$/, "");
+  let baseUrl = (process.env.USER_WEB_URL || process.env.PUBLIC_USER_URL || process.env.PUBLIC_BASE_URL || "").trim().replace(/\/+$/, "");
 
   // Auto-detect production domain if running on Vercel or in production mode
   const isProd = process.env.NODE_ENV === "production" || !!process.env.VERCEL || !!process.env.VERCEL_URL;
