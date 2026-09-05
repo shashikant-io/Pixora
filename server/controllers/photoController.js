@@ -9,10 +9,14 @@ const {
   invalidateStorageUsageCache,
   getSignedViewUrl,
   getSignedDownloadUrl,
+  getSignedUploadUrl,
   resolvePhotoUrls,
   getObjectStream,
   getStorageUsage,
+  getS3Client,
+  getBucketName,
 } = require("../services/s3Service");
+const { PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getFileStream: getDriveFileStream } = require("../services/googleDriveService");
 const { processPhotoFaces } = require("../services/faceService");
 
@@ -124,8 +128,203 @@ async function resolvePhotoSource(fileId) {
 }
 
 /**
- * Handles photo uploads: validates input, extracts face embeddings,
- * uploads to private AWS S3 bucket with SSE-S3 encryption, and persists S3 keys in DB.
+ * Generates a presigned S3 PUT URL for direct client-to-S3 upload (supports 25MB+ files)
+ * POST /api/photos/get-upload-url
+ */
+async function getUploadUrl(req, res) {
+  try {
+    const { eventId, fileName, fileType, fileSize } = req.body;
+
+    if (!eventId) {
+      return res.status(400).json({
+        success: false,
+        message: "eventId is required.",
+      });
+    }
+
+    // Validate 25 MB maximum file size limit
+    if (fileSize && fileSize > 25 * 1024 * 1024) {
+      return res.status(400).json({
+        success: false,
+        code: "FILE_TOO_LARGE",
+        message: "This photo is too large. Maximum allowed size is 25 MB.",
+      });
+    }
+
+    const event = await Event.findOne({ eventId });
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: `Event "${eventId}" does not exist.`,
+      });
+    }
+
+    // Storage quota validation
+    const usage = await getStorageUsage(false);
+    if (usage && usage.totalQuotaBytes && fileSize && (usage.mediaLibraryStorageBytes + fileSize > usage.totalQuotaBytes)) {
+      return res.status(403).json({
+        success: false,
+        code: "STORAGE_QUOTA_EXCEEDED",
+        message: `Storage quota exceeded (${usage.storageLimitTB || 1} TB limit reached). Delete old photos to free up space.`,
+      });
+    }
+
+    const mime = (fileType || "image/jpeg").toLowerCase();
+    const result = await getSignedUploadUrl(eventId, fileName || "photo.jpg", mime, 900);
+
+    return res.json({
+      success: true,
+      directUpload: result.directUpload,
+      uploadUrl: result.uploadUrl,
+      s3Key: result.photoKey,
+      thumbKey: result.thumbKey,
+      eventId,
+    });
+  } catch (err) {
+    console.error("Error generating upload URL:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Failed to generate upload URL.",
+    });
+  }
+}
+
+/**
+ * Confirms a direct S3 upload, saves the photo record in MongoDB,
+ * and triggers Buffalo AI face indexing.
+ * POST /api/photos/confirm-upload
+ */
+async function confirmUpload(req, res) {
+  try {
+    const { eventId, s3Key, thumbKey, fileName, fileSize, mimeType } = req.body;
+
+    if (!eventId || !s3Key) {
+      return res.status(400).json({
+        success: false,
+        message: "eventId and s3Key are required.",
+      });
+    }
+
+    const event = await Event.findOne({ eventId });
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: `Event "${eventId}" does not exist.`,
+      });
+    }
+
+    const actualThumbKey = thumbKey || (s3Key.includes("/photos/") ? s3Key.replace("/photos/", "/thumbnails/") : `thumbnails/${s3Key}`);
+    const actualMime = mimeType || "image/jpeg";
+    const actualSize = fileSize || 0;
+
+    // 1. Persist photo in MongoDB first (guarantees photo is preserved in storage)
+    let photo = await Photo.findOne({ eventId, fileId: s3Key });
+    if (!photo) {
+      photo = await Photo.create({
+        eventId,
+        storageProvider: "s3",
+        fileId: s3Key,
+        imageUrl: s3Key,
+        thumbnailUrl: actualThumbKey,
+        downloadUrl: s3Key,
+        filePath: s3Key,
+        fileSize: actualSize,
+        mimeType: actualMime,
+        faces: [],
+      });
+    }
+
+    invalidateStorageUsageCache();
+
+    // 2. Generate presigned URLs for response
+    const [signedViewUrl, signedThumbUrl, signedDownUrl] = await Promise.all([
+      getSignedViewUrl(s3Key, 3600),
+      getSignedViewUrl(actualThumbKey || s3Key, 3600),
+      getSignedDownloadUrl(s3Key, fileName || path.basename(s3Key), 3600),
+    ]);
+
+    // 3. Buffalo AI Indexing & Thumbnail Generation
+    let detectedFaces = [];
+    try {
+      // Stream buffer from S3 to perform indexing and thumbnail generation
+      const s3Stream = await getObjectStream(s3Key);
+      if (s3Stream && s3Stream.stream) {
+        const chunks = [];
+        for await (const chunk of s3Stream.stream) {
+          chunks.push(chunk);
+        }
+        const fullBuffer = Buffer.concat(chunks);
+
+        // Generate and upload thumbnail if possible
+        try {
+          const thumbBuffer = await sharp(fullBuffer)
+            .resize(350, 350, { fit: "inside", withoutEnlargement: true })
+            .jpeg({ quality: 80 })
+            .toBuffer();
+
+          const s3 = getS3Client();
+          const bucket = getBucketName();
+          await s3.send(
+            new PutObjectCommand({
+              Bucket: bucket,
+              Key: actualThumbKey,
+              Body: thumbBuffer,
+              ContentType: "image/jpeg",
+              ServerSideEncryption: "AES256",
+              CacheControl: "private, max-age=31536000",
+            })
+          );
+        } catch (thumbErr) {
+          console.warn(`[Confirm Upload] Thumbnail generation notice:`, thumbErr.message);
+        }
+
+        // Run Buffalo AI Face Indexing
+        try {
+          const { isLoaded, initModels } = require("../faceRecognition/modelLoader");
+          if (!isLoaded()) {
+            await initModels();
+          }
+          const faces = await processPhotoFaces(fullBuffer);
+          if (Array.isArray(faces) && faces.length > 0) {
+            detectedFaces = faces;
+            photo.faces = faces;
+            await photo.save();
+          }
+        } catch (aiErr) {
+          console.warn(`[AI Engine] Face extraction warning on confirmed photo:`, aiErr.message);
+        }
+      }
+    } catch (streamErr) {
+      console.warn(`[Confirm Upload] Notice retrieving S3 object stream:`, streamErr.message);
+    }
+
+    return res.json({
+      success: true,
+      stage: "completed",
+      photo: {
+        id: photo._id,
+        fileId: photo.fileId,
+        imageUrl: signedViewUrl,
+        thumbnailUrl: signedThumbUrl,
+        downloadUrl: signedDownUrl,
+        storageProvider: photo.storageProvider,
+        faceCount: detectedFaces.length,
+        fileSize: photo.fileSize,
+        fileName: fileName || path.basename(s3Key),
+      },
+    });
+  } catch (err) {
+    console.error("Error confirming upload:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Failed to confirm upload.",
+    });
+  }
+}
+
+/**
+ * Handles multipart photo uploads: saves to S3 first, persists in DB, then indexes faces.
+ * POST /api/photos/upload
  */
 async function uploadPhoto(req, res) {
   let stage = "validation";
@@ -150,6 +349,16 @@ async function uploadPhoto(req, res) {
       });
     }
 
+    // Enforce 25 MB max limit
+    if (req.file.buffer.length > 25 * 1024 * 1024) {
+      return res.status(400).json({
+        success: false,
+        stage: "validation",
+        code: "FILE_TOO_LARGE",
+        message: "This photo is too large. Maximum allowed size is 25 MB.",
+      });
+    }
+
     const event = await Event.findOne({ eventId });
     if (!event) {
       return res.status(404).json({
@@ -171,24 +380,7 @@ async function uploadPhoto(req, res) {
       });
     }
 
-    // Stage 1: Face Detection & AI Embedding Extraction (Buffalo ONNX)
-    stage = "indexing";
-    let faces = [];
-
-    try {
-      const { isLoaded, initModels } = require("../faceRecognition/modelLoader");
-      if (!isLoaded()) {
-        await initModels();
-      }
-      const buffaloFaces = await processPhotoFaces(req.file.buffer);
-      if (Array.isArray(buffaloFaces)) {
-        faces = buffaloFaces;
-      }
-    } catch (faceErr) {
-      console.warn(`[AI Engine] Face extraction warning for "${req.file.originalname}":`, faceErr.message);
-    }
-
-    // Stage 2: Direct Upload to AWS S3 (SSE-S3 encrypted, private)
+    // Stage 1: Upload to AWS S3 storage first
     stage = "storage";
     const uploaded = await uploadImage(
       req.file.buffer,
@@ -197,7 +389,7 @@ async function uploadPhoto(req, res) {
       req.file.mimetype || "image/jpeg"
     );
 
-    // Stage 3: Database Persistence (stores S3 object keys, NOT expiring URLs)
+    // Stage 2: Database Persistence
     stage = "persistence";
     let photo = await Photo.findOne({ eventId, fileId: uploaded.fileId });
 
@@ -205,24 +397,39 @@ async function uploadPhoto(req, res) {
       photo = await Photo.create({
         eventId,
         storageProvider: "s3",
-        fileId: uploaded.fileId, // S3 Object Key
-        imageUrl: uploaded.filePath, // S3 Object Key
-        thumbnailUrl: uploaded.thumbKey, // S3 Thumbnail Key
-        downloadUrl: uploaded.filePath, // S3 Object Key
-        filePath: uploaded.filePath, // S3 Object Key
+        fileId: uploaded.fileId,
+        imageUrl: uploaded.filePath,
+        thumbnailUrl: uploaded.thumbKey,
+        downloadUrl: uploaded.filePath,
+        filePath: uploaded.filePath,
         fileSize: uploaded.size,
         mimeType: req.file.mimetype || "image/jpeg",
-        faces,
+        faces: [],
       });
-    } else if (faces.length > 0 && (!photo.faces || photo.faces.length === 0)) {
-      photo.faces = faces;
-      await photo.save();
     }
 
     invalidateStorageUsageCache();
 
+    // Stage 3: Buffalo ONNX Face Detection & AI Embedding Extraction (Post-Storage)
+    stage = "indexing";
+    let faces = [];
+    try {
+      const { isLoaded, initModels } = require("../faceRecognition/modelLoader");
+      if (!isLoaded()) {
+        await initModels();
+      }
+      const buffaloFaces = await processPhotoFaces(req.file.buffer);
+      if (Array.isArray(buffaloFaces) && buffaloFaces.length > 0) {
+        faces = buffaloFaces;
+        photo.faces = faces;
+        await photo.save();
+      }
+    } catch (faceErr) {
+      console.warn(`[AI Engine] Face extraction warning for "${req.file.originalname}":`, faceErr.message);
+    }
+
     // Return freshly generated presigned URLs in the response for instant frontend display
-    res.json({
+    return res.json({
       success: true,
       stage: "completed",
       photo: {
@@ -232,7 +439,7 @@ async function uploadPhoto(req, res) {
         thumbnailUrl: uploaded.thumbnailUrl,
         downloadUrl: uploaded.downloadUrl,
         storageProvider: photo.storageProvider,
-        faceCount: photo.faces ? photo.faces.length : 0,
+        faceCount: faces.length,
         fileSize: photo.fileSize,
         fileName: req.file.originalname,
       },
@@ -457,6 +664,8 @@ async function downloadPhoto(req, res) {
 
 module.exports = {
   uploadPhoto,
+  getUploadUrl,
+  confirmUpload,
   getPhotosByEvent,
   streamPhoto,
   downloadPhoto,

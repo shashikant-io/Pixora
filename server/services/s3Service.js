@@ -143,6 +143,56 @@ async function getSignedDownloadUrl(key, fileName, expiresIn = 3600) {
 }
 
 /**
+ * Generates a presigned PUT URL for direct client-to-S3 upload
+ * Allows large photos (25MB+) without routing the payload through serverless functions
+ *
+ * @param {string} eventId - Wedding Event ID
+ * @param {string} originalName - Original filename
+ * @param {string} [mimeType="image/jpeg"] - Image MIME type
+ * @param {number} [expiresIn=900] - Expiration in seconds (default: 15 minutes)
+ */
+async function getSignedUploadUrl(eventId, originalName, mimeType = "image/jpeg", expiresIn = 900) {
+  const photoKey = generateObjectKey(eventId, originalName, false);
+  const thumbKey = getThumbnailKey(photoKey);
+
+  if (!hasCredentials()) {
+    return {
+      directUpload: false,
+      photoKey,
+      thumbKey,
+    };
+  }
+
+  try {
+    const s3 = getS3Client();
+    const bucket = getBucketName();
+    const command = new PutObjectCommand({
+      Bucket: bucket,
+      Key: photoKey,
+      ContentType: mimeType,
+      ServerSideEncryption: "AES256",
+    });
+
+    const uploadUrl = await getSignedUrl(s3, command, { expiresIn });
+
+    return {
+      directUpload: true,
+      uploadUrl,
+      photoKey,
+      thumbKey,
+      bucket,
+    };
+  } catch (err) {
+    console.error(`[AWS S3] Error generating presigned upload URL for "${photoKey}":`, err.message);
+    return {
+      directUpload: false,
+      photoKey,
+      thumbKey,
+    };
+  }
+}
+
+/**
  * Attaches fresh presigned URLs to a photo document or plain object for frontend consumption
  * @param {Object} photo - Photo database record or object
  * @param {number} [expiresIn=3600] - URL validity in seconds
@@ -445,6 +495,7 @@ module.exports = {
   getBucketName,
   getSignedViewUrl,
   getSignedDownloadUrl,
+  getSignedUploadUrl,
   resolvePhotoUrls,
   uploadImage,
   deleteImage,

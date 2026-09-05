@@ -521,6 +521,10 @@ function addFilesToQueue(newFiles) {
 
   // Prevent duplicate additions by filename + size
   imageFiles.forEach((newFile) => {
+    if (newFile.size > 25 * 1024 * 1024) {
+      showToast(`"${newFile.name}" exceeds 25 MB limit (${(newFile.size / (1024 * 1024)).toFixed(1)} MB).`, "error");
+    }
+
     const exists = selectedUploadFiles.some(
       (f) => f.name === newFile.name && f.size === newFile.size
     );
@@ -629,8 +633,17 @@ function updateUploadButtonState() {
 // ==========================================================================
 const UPLOAD_CONCURRENCY_LIMIT = 3;
 const MAX_UPLOAD_RETRIES = 2;
+const MAX_ALLOWED_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
 
 async function uploadSinglePhotoWithRetry(file, eventId, statusEl, onStageChange) {
+  // Pre-validate 25 MB file size limit
+  if (file.size > MAX_ALLOWED_FILE_SIZE_BYTES) {
+    const errorMsg = "This photo is too large. Maximum allowed size is 25 MB.";
+    statusEl.className = "upload-item-status error";
+    statusEl.innerHTML = `${getIcon("alertCircle")} <span title="${errorMsg}">${errorMsg}</span>`;
+    return { success: false, file, error: new Error(errorMsg) };
+  }
+
   let attempt = 0;
   let lastError = null;
 
@@ -640,49 +653,140 @@ async function uploadSinglePhotoWithRetry(file, eventId, statusEl, onStageChange
       if (attempt > 1) {
         statusEl.className = "upload-item-status retrying";
         statusEl.innerHTML = `${getIcon("spinner")} <span>Retrying (${attempt - 1}/${MAX_UPLOAD_RETRIES})&hellip;</span>`;
-        // Exponential backoff: 1s, 2s
         await new Promise((resolve) => setTimeout(resolve, (attempt - 1) * 1000));
       }
 
       statusEl.className = "upload-item-status running";
-      statusEl.innerHTML = `${getIcon("spinner")} <span>Uploading&hellip;</span>`;
+      statusEl.innerHTML = `${getIcon("spinner")} <span>Uploading to storage&hellip;</span>`;
 
-      const formData = new FormData();
-      formData.append("photo", file);
-      formData.append("eventId", eventId);
+      let uploadSuccess = false;
+      let photoData = null;
 
-      // Transition to AI indexing indicator
-      const indexingTimer = setTimeout(() => {
-        statusEl.innerHTML = `${getIcon("spinner")} <span>Buffalo AI indexing&hellip;</span>`;
-      }, 600);
-
-      const response = await fetch(`${API_BASE_URL}/photos/upload`, {
-        method: "POST",
-        headers: getAdminAuthHeaders(),
-        body: formData,
-      });
-
-      clearTimeout(indexingTimer);
-
-      let data = null;
+      // Pipeline A: Direct AWS S3 Presigned Upload (Bypasses serverless 4.5MB payload limits)
       try {
-        data = await response.json();
-      } catch (parseErr) {
-        throw new Error(`Server returned invalid response (HTTP ${response.status})`);
-      }
+        const presignRes = await fetch(`${API_BASE_URL}/photos/get-upload-url`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAdminAuthHeaders(),
+          },
+          body: JSON.stringify({
+            eventId,
+            fileName: file.name,
+            fileType: file.type || "image/jpeg",
+            fileSize: file.size,
+          }),
+        });
 
-      if (!response.ok || !data.success) {
-        const errorMsg = (data && data.message) || `Upload failed (HTTP ${response.status})`;
-        // Do not retry 4xx client validation errors
-        if (response.status >= 400 && response.status < 500 && response.status !== 408) {
-          const nonRetryErr = new Error(errorMsg);
-          nonRetryErr.isNonRetryable = true;
-          throw nonRetryErr;
+        let presignData = null;
+        if (presignRes.ok) {
+          try {
+            presignData = await presignRes.json();
+          } catch (e) {}
+        } else if (presignRes.status === 413) {
+          throw new Error("This photo is too large. Maximum allowed size is 25 MB.");
         }
-        throw new Error(errorMsg);
+
+        if (presignData && presignData.success && presignData.directUpload && presignData.uploadUrl) {
+          // Direct PUT to AWS S3
+          const s3PutRes = await fetch(presignData.uploadUrl, {
+            method: "PUT",
+            headers: {
+              "Content-Type": file.type || "image/jpeg",
+            },
+            body: file,
+          });
+
+          if (!s3PutRes.ok) {
+            throw new Error(`Direct S3 upload failed (HTTP ${s3PutRes.status})`);
+          }
+
+          // Confirm upload and trigger Buffalo AI face indexing
+          statusEl.innerHTML = `${getIcon("spinner")} <span>Buffalo AI indexing&hellip;</span>`;
+
+          const confirmRes = await fetch(`${API_BASE_URL}/photos/confirm-upload`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...getAdminAuthHeaders(),
+            },
+            body: JSON.stringify({
+              eventId,
+              s3Key: presignData.s3Key,
+              thumbKey: presignData.thumbKey,
+              fileName: file.name,
+              fileSize: file.size,
+              mimeType: file.type || "image/jpeg",
+            }),
+          });
+
+          let confirmData = null;
+          try {
+            confirmData = await confirmRes.json();
+          } catch (e) {
+            throw new Error(`Server returned invalid response on confirmation (HTTP ${confirmRes.status})`);
+          }
+
+          if (confirmRes.ok && confirmData.success) {
+            uploadSuccess = true;
+            photoData = confirmData;
+          }
+        }
+      } catch (directErr) {
+        console.warn(`Direct S3 upload notice for "${file.name}":`, directErr.message);
+        if (directErr.message && directErr.message.includes("too large")) {
+          throw directErr;
+        }
       }
 
-      const faceCount = data.photo && data.photo.faceCount !== undefined ? data.photo.faceCount : 0;
+      // Pipeline B: Standard Multipart Upload (Fallback)
+      if (!uploadSuccess) {
+        statusEl.innerHTML = `${getIcon("spinner")} <span>Uploading&hellip;</span>`;
+        const formData = new FormData();
+        formData.append("photo", file);
+        formData.append("eventId", eventId);
+
+        const indexingTimer = setTimeout(() => {
+          statusEl.innerHTML = `${getIcon("spinner")} <span>Buffalo AI indexing&hellip;</span>`;
+        }, 800);
+
+        const response = await fetch(`${API_BASE_URL}/photos/upload`, {
+          method: "POST",
+          headers: getAdminAuthHeaders(),
+          body: formData,
+        });
+
+        clearTimeout(indexingTimer);
+
+        if (response.status === 413) {
+          throw new Error("This photo is too large. Maximum allowed size is 25 MB.");
+        }
+
+        let data = null;
+        try {
+          data = await response.json();
+        } catch (parseErr) {
+          throw new Error(`Server returned invalid response (HTTP ${response.status})`);
+        }
+
+        if (!response.ok || !data.success) {
+          const errorMsg = (data && data.message) || `Upload failed (HTTP ${response.status})`;
+          if (response.status >= 400 && response.status < 500 && response.status !== 408) {
+            const nonRetryErr = new Error(errorMsg);
+            nonRetryErr.isNonRetryable = true;
+            throw nonRetryErr;
+          }
+          throw new Error(errorMsg);
+        }
+
+        uploadSuccess = true;
+        photoData = data;
+      }
+
+      const faceCount = (photoData && photoData.photo && photoData.photo.faceCount !== undefined)
+        ? photoData.photo.faceCount
+        : 0;
+
       statusEl.className = "upload-item-status success";
       if (faceCount > 0) {
         statusEl.innerHTML = `${getIcon("checkCircle")} <span>Indexed (${faceCount} face${faceCount === 1 ? "" : "s"})</span>`;
@@ -690,12 +794,12 @@ async function uploadSinglePhotoWithRetry(file, eventId, statusEl, onStageChange
         statusEl.innerHTML = `${getIcon("checkCircle")} <span>Indexed (0 faces detected)</span>`;
       }
 
-      return { success: true, file, data };
+      return { success: true, file, data: photoData };
     } catch (err) {
       lastError = err;
       console.warn(`Upload attempt ${attempt} for "${file.name}" failed:`, err.message);
 
-      if (err.isNonRetryable || attempt > MAX_UPLOAD_RETRIES) {
+      if (err.isNonRetryable || err.message.includes("too large") || attempt > MAX_UPLOAD_RETRIES) {
         break;
       }
     }
@@ -705,6 +809,8 @@ async function uploadSinglePhotoWithRetry(file, eventId, statusEl, onStageChange
   let displayErrMsg = lastError ? lastError.message : "Upload failed";
   if (displayErrMsg === "Failed to fetch") {
     displayErrMsg = "Connection timeout / Server unreachable";
+  } else if (displayErrMsg.includes("413") || displayErrMsg.includes("too large")) {
+    displayErrMsg = "This photo is too large. Maximum allowed size is 25 MB.";
   }
 
   statusEl.className = "upload-item-status error";

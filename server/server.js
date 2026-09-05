@@ -16,7 +16,8 @@ connectDB();
 initFaceRecognition().catch((err) => console.error("Buffalo model init error:", err.message));
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // Ensure MongoDB is connected for serverless invocations
 app.use(async (req, res, next) => {
