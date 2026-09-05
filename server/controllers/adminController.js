@@ -123,8 +123,38 @@ async function getUsersActivity(req, res) {
   }
 }
 
+const Event = require("../models/Event");
+
+async function getDashboardStats(req, res) {
+  try {
+    const [eventsCount, photosCount, inquiriesCount] = await Promise.all([
+      Event.countDocuments(),
+      Photo.countDocuments(),
+      User.countDocuments({ role: "customer" }),
+    ]);
+
+    res.json({
+      success: true,
+      stats: {
+        events: eventsCount,
+        photos: photosCount,
+        bookings: eventsCount,     // Each event represents a wedding booking
+        inquiries: inquiriesCount, // Each customer sign-up represents an inquiry
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching dashboard stats:", error);
+    res.status(500).json({
+      success: false,
+      message: "Could not fetch dashboard statistics.",
+      error: error.message,
+    });
+  }
+}
+
 module.exports = {
   getStorageStats,
   getUsersActivity,
+  getDashboardStats,
 };
 

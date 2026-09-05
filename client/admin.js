@@ -55,6 +55,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   checkServerStatus();
   initStoragePlanCard();
+  loadDashboardStats();
   loadEvents();
   loadUserActivity();
   setupAdminUploadControls();
@@ -423,6 +424,46 @@ function renderStorageError(errorMessage) {
 
   document.getElementById("storage-retry-btn")?.addEventListener("click", () => {
     loadStoragePlan(true);
+  });
+}
+
+// ==========================================================================
+// Dashboard Statistics Overview (4-Card Grid)
+// ==========================================================================
+async function loadDashboardStats() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/dashboard-stats`, {
+      headers: getAdminAuthHeaders(),
+    });
+    const data = await response.json();
+
+    if (data.success && data.stats) {
+      const mapping = {
+        'stat-count-events': data.stats.events,
+        'stat-count-photos': data.stats.photos,
+        'stat-count-bookings': data.stats.bookings,
+        'stat-count-inquiries': data.stats.inquiries,
+      };
+
+      Object.entries(mapping).forEach(([id, value]) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.textContent = (value !== undefined && value !== null) ? value.toLocaleString() : '0';
+        }
+      });
+    } else {
+      setStatsToZero();
+    }
+  } catch (err) {
+    console.warn('Dashboard stats load error:', err.message);
+    setStatsToZero();
+  }
+}
+
+function setStatsToZero() {
+  ['stat-count-events', 'stat-count-photos', 'stat-count-bookings', 'stat-count-inquiries'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '0';
   });
 }
 
