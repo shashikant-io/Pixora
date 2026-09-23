@@ -100,8 +100,8 @@
 ## 4. Installation Guide
 
 ### Prerequisites
-- **Node.js** (v18.0.0 or higher)
-- **npm** (v9.0.0 or higher)
+- **Node.js** (v18.0.0)
+- **npm** (v9.0.0)
 - **MongoDB Atlas** database connection string
 - **AWS Account** with an S3 bucket
 
