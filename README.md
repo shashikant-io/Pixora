@@ -16,16 +16,17 @@
 - [1. Key Features](#1-key-features)
 - [2. System Architecture](#2-system-architecture)
 - [3. Tech Stack](#3-tech-stack)
-- [4. Installation Guide](#4-installation-guide)
-- [5. Environment Variables](#5-environment-variables)
-- [6. AWS S3 Configuration & IAM Policy](#6-aws-s3-configuration--iam-policy)
-- [7. Google Sign-In & Welcome Email System](#7-google-sign-in--welcome-email-system)
-- [8. Buffalo ONNX Face Recognition](#8-buffalo-onnx-face-recognition)
-- [9. How to Run](#9-how-to-run)
-- [10. API Endpoints](#10-api-endpoints)
-- [11. Testing & Verification](#11-testing--verification)
-- [12. Project Structure](#12-project-structure)
-- [13. License](#13-license)
+- [4. Firebase Authentication](#4-firebase-authentication)
+- [5. Installation Guide](#5-installation-guide)
+- [6. Environment Variables](#6-environment-variables)
+- [7. AWS S3 Configuration & IAM Policy](#7-aws-s3-configuration--iam-policy)
+- [8. Google Sign-In & Welcome Email System](#8-google-sign-in--welcome-email-system)
+- [9. Buffalo ONNX Face Recognition](#9-buffalo-onnx-face-recognition)
+- [10. How to Run](#10-how-to-run)
+- [11. API Endpoints](#11-api-endpoints)
+- [12. Testing & Verification](#12-testing--verification)
+- [13. Project Structure](#13-project-structure)
+- [14. License](#14-license)
 
 ---
 
@@ -97,7 +98,53 @@
 
 ---
 
-## 4. Installation Guide
+## 4. Firebase Authentication
+
+Firebase is used for **Google authentication**, not for storing photos or application data.
+
+### What Firebase does
+
+- Opens the Google Sign-In popup on the guest login page.
+- Creates or identifies the guest's Firebase user account.
+- Generates a Firebase ID token after successful Google login.
+- Lets the backend verify that token with the Firebase Admin SDK.
+- Provides the user's verified email, name, profile picture, and Firebase user ID.
+
+After Firebase verifies the guest, Pixora stores or updates the user in **MongoDB** and creates its own session JWT. That JWT is then used to authorize access to the selected event and its photos.
+
+### What Firebase does not do
+
+- **MongoDB Atlas** stores users, events, photos, and face embeddings.
+- **AWS S3** stores the original photos and thumbnails.
+- **ONNX Runtime** performs face detection, embedding, and matching locally on the server.
+- **Vercel** runs the deployed Express API and serves the frontend.
+
+### Guest login flow
+
+```text
+Guest clicks Google Sign-In
+  |
+  v
+Firebase Web SDK authenticates with Google
+  |
+  v
+Firebase ID token is sent to /api/auth/customer/google-login
+  |
+  v
+Firebase Admin SDK verifies the token
+  |
+  v
+Pixora updates MongoDB and returns a Pixora session JWT
+  |
+  v
+Guest can access the selected event gallery
+```
+
+The Firebase Web configuration is returned by `/api/auth/firebase-config`. The frontend uses these public web settings, while the backend uses Firebase Admin credentials to verify tokens securely.
+
+---
+
+## 5. Installation Guide
 
 ### Prerequisites
 - **Node.js** (v18.0.0)
@@ -123,7 +170,7 @@
 
 ---
 
-## 5. Environment Variables
+## 6. Environment Variables
 
 Create or edit `server/.env`:
 
@@ -163,7 +210,7 @@ FIREBASE_MEASUREMENT_ID=your_firebase_measurement_id
 
 ---
 
-## 6. AWS S3 Configuration & IAM Policy
+## 7. AWS S3 Configuration & IAM Policy
 
 ### Bucket Settings
 - **Bucket Name**: `pixora-images-2026`
@@ -203,7 +250,7 @@ Attach this policy to the IAM user or role running the backend application:
 
 ---
 
-## 7. Google Sign-In & Welcome Email System
+## 8. Google Sign-In & Welcome Email System
 
 When guests access a wedding gallery via **"Continue with Google"**:
 1. The client retrieves a Firebase Google ID token.
@@ -225,7 +272,7 @@ If you need any help, we're here for you.
 
 ---
 
-## 8. Buffalo ONNX Face Recognition
+## 9. Buffalo ONNX Face Recognition
 
 The platform embeds local **InsightFace Buffalo ONNX models** in `server/models/buffalo_m/`:
 
@@ -238,7 +285,7 @@ The platform embeds local **InsightFace Buffalo ONNX models** in `server/models/
 
 ---
 
-## 9. How to Run
+## 10. How to Run
 
 ### Start the Application
 From the root directory:
@@ -255,7 +302,7 @@ npm start
 
 ---
 
-## 10. API Endpoints
+## 11. API Endpoints
 
 ### Authentication (`/api/auth`)
 - `POST /api/auth/customer/google-login` - Authenticate guest with Firebase Google ID token & send welcome email on first sign-up.
@@ -282,7 +329,7 @@ npm start
 
 ---
 
-## 11. Testing & Verification
+## 12. Testing & Verification
 
 Run the built-in automated test suites:
 
@@ -301,7 +348,7 @@ node test_live_s3.js
 
 ---
 
-## 12. Project Structure
+## 13. Project Structure
 
 ```
 wedding-photo-finder/
@@ -342,6 +389,6 @@ wedding-photo-finder/
 
 ---
 
-## 13. License
+## 14. License
 
 This project is licensed under the MIT License.

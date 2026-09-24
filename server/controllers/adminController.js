@@ -7,9 +7,11 @@ const DEFAULT_ESTIMATED_PHOTO_LIMIT = Math.round((DEFAULT_STORAGE_LIMIT_GB * 102
 
 async function getStorageStats(req, res) {
   try {
+    // Refresh the S3 usage cache only when the dashboard explicitly requests it.
     const forceRefresh = req.query.force === "true" || req.query.refresh === "1";
     const usageData = await getStorageUsage(forceRefresh);
 
+    // Use the larger count so the dashboard does not under-report files.
     const dbPhotoCount = await Photo.countDocuments();
     const photoCount = Math.max(dbPhotoCount, usageData.fileCount || 0);
 
@@ -32,6 +34,7 @@ async function getStorageStats(req, res) {
     const remainingGB = parseFloat((remainingBytes / (1024 * 1024 * 1024)).toFixed(3));
     const remainingTB = parseFloat((remainingGB / 1024).toFixed(2));
 
+    // Estimate how many photos fit based on the current average photo size.
     let photoLimitEstimated = DEFAULT_ESTIMATED_PHOTO_LIMIT;
     if (photoCount > 5 && storageUsedBytes > 0) {
       const avgPhotoSize = storageUsedBytes / photoCount;
@@ -40,6 +43,7 @@ async function getStorageStats(req, res) {
       }
     }
 
+    // These flags let the frontend show full or warning states consistently.
     const isFull = storageUsedBytes >= storageLimitBytes;
     const isNearFull = storagePercentage >= 90;
 
@@ -84,12 +88,14 @@ const User = require("../models/User");
 
 async function getUsersActivity(req, res) {
   try {
+    // Newest logins appear first so the admin can quickly see recent activity.
     const users = await User.find().sort({ lastLoginAt: -1, createdAt: -1 }).lean();
 
     const totalUsers = users.length;
     const totalCustomers = users.filter((u) => u.role === "customer").length;
     const totalAdmins = users.filter((u) => u.role === "admin").length;
 
+    // A user is active if they logged in or signed up during the last 24 hours.
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const activeLast24h = users.filter(
       (u) => (u.lastLoginAt && new Date(u.lastLoginAt) >= oneDayAgo) || (u.createdAt && new Date(u.createdAt) >= oneDayAgo)
@@ -127,6 +133,7 @@ const Event = require("../models/Event");
 
 async function getDashboardStats(req, res) {
   try {
+    // Run independent database counts together to reduce dashboard load time.
     const [eventsCount, photosCount, inquiriesCount] = await Promise.all([
       Event.countDocuments(),
       Photo.countDocuments(),
